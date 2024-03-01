@@ -1,0 +1,14 @@
+node_modules/
+build/
+.env
+logs/
+*.log
+.DS_Store
+*.rdb
+.idea/
+package-lock.json
+.vscode
+.env.local
+*.key
+*.cert
+pids/
