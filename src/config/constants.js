@@ -1,0 +1,10 @@
+export const TRANSACTION_STATUS = {
+    BRIDGED: "BRIDGED",
+    READY_TO_CLAIM: "READY_TO_CLAIM",
+    CLAIMED: "CLAIMED",
+}
+
+export const CHAIN = {
+    AVAIL: "AVAIL",
+    ETHEREUM: "ETHEREUM"
+}

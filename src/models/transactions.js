@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
 import { Database } from '../connections/dbMaster';
+import { TRANSACTION_STATUS } from '../config/constants';
 
 const TransactionSchema = new Schema({
   sourceChain: {
@@ -10,15 +11,21 @@ const TransactionSchema = new Schema({
     type: String,
     required: true,
   },
+  messageId: {
+    type: Number,
+  },
   status: {
     type: String,
     required: true,
-    default: 'BRIDGED'
+    default: TRANSACTION_STATUS.BRIDGED
   },
   sourceTransactionHash: {
     type: String,
   },
   sourceTransactionBlockNumber: {
+    type: Number,
+  },
+  sourceTransactionIndex: {
     type: Number,
   },
   sourceTransactionTimestamp: {
@@ -32,6 +39,9 @@ const TransactionSchema = new Schema({
   },
   destinationTransactionTimestamp: {
     type: Date
+  },
+  sourceTransactionIndex: {
+    type: Number,
   },
   depositorAddress: {
     type: String
@@ -56,24 +66,4 @@ const TransactionSchema = new Schema({
   }
 }, { autoIndex: false });
 
-/**
- * This class represents Transaction Model
- *
- * @class
- */
-export class TransactionModel {
-  /**
-   * Get the transaction model defined on this mongoose database instance
-   *
-   * @param {Database} database
-   *
-   */
-  static async new(
-    database
-  ) {
-    const model = database.model("Transaction", TransactionSchema);
-    await model.createCollection();
-
-    return model;
-  }
-}
+export const Transaction = Database.model('transaction', TransactionSchema);
