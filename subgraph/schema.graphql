@@ -1,0 +1,25 @@
+type SendMessage @entity {
+  id: ID!
+  from: Bytes!
+  to: Bytes!
+  messageId: BigInt!
+  block: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  logIndex: String!
+  input: Bytes!
+}
+
+type ReceiveMessage @entity {
+  id: ID!
+  from: Bytes!
+  to: Bytes!
+  block: BigInt!
+  messageId: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  logIndex: String!
+  input: Bytes!
+}
+
+

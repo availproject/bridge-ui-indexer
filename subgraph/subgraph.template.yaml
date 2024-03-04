@@ -1,0 +1,28 @@
+specVersion: 0.0.4
+description: Indexes bridge transaction on avail
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: AvailBridge
+    network: {{ network }}
+    source:
+      address: "{{contracts.AvailBridge.address}}"
+      abi: AvailBridge
+      startBlock: {{ contracts.AvailBridge.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - SendMessage
+        - ReceiveMessage
+      abis:
+        - name: AvailBridge
+          file: ./abis/AvailBridge.json
+      eventHandlers:
+        - event: MessageSent(indexed address,indexed bytes32,uint256)
+          handler: handleMessageSent
+        - event: MessageReceived(indexed bytes32,indexed address,uint256)
+          handler: handleMessageReceived
+      file: ./src/mappings/avail-bridge.ts

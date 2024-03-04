@@ -1,0 +1,32 @@
+{
+  "name": "avail-bridge-subgraph",
+  "version": "0.0.2",
+  "license": "MIT",
+  "author": "nitinmittal23",
+  "scripts": {
+    "lint": "eslint --ext .ts --ext .js --ext .json .eslintrc.js src abis",
+    "lint:fix": "eslint --ext .ts --ext .js --ext .json .eslintrc.js src abis --fix",
+    "graph": "graph",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:testnet": "mustache config/testnet.json subgraph.template.yaml > subgraph.yaml",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nitinmittal23/avail-bridge-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ nitinmittal23/avail-bridge-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ nitinmittal23/avail-bridge-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs https://ipfs.infura.io:5001 nitinmittal23/avail-bridge-subgraph"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-ts": "^0.33.0"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.68.5",
+    "@typescript-eslint/eslint-plugin": "^4.10.0",
+    "@typescript-eslint/parser": "^4.10.0",
+    "eslint": "^7.16.0",
+    "eslint-plugin-json": "^2.1.2",
+    "eslint-plugin-unicorn": "^24.0.0",
+    "mustache": "4.0.1",
+    "typescript": "^4.1.3"
+  }
+}
