@@ -7,7 +7,7 @@ import AvailBridgeAbi from '../config/AvailBridge.js';
 import AbiCoder from "web3-eth-abi";
 import axios from 'axios';
 
-const getSendMessageTxFromSubgraph = async (start) => {
+const getSendMessageTxFromEthSubgraph = async (start) => {
     try {
         const limit = 1000;
         const direction = 'asc';
@@ -25,7 +25,7 @@ const getSendMessageTxFromSubgraph = async (start) => {
                 input,
           }
         }`;
-        const resp = await request(config.SUBGRAPH_URL, query);
+        const resp = await request(config.ETHEREUM_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
         console.log(error);
@@ -33,7 +33,7 @@ const getSendMessageTxFromSubgraph = async (start) => {
     }
 };
 
-const getReceiveMessageTxFromSubgraph = async (start) => {
+const getReceiveMessageTxFromEthSubgraph = async (start) => {
     try {
         const limit = 1000;
         const direction = 'asc';
@@ -51,7 +51,49 @@ const getReceiveMessageTxFromSubgraph = async (start) => {
                 input,
           }
         }`;
-        const resp = await request(config.SUBGRAPH_URL, query);
+        const resp = await request(config.ETHEREUM_SUBGRAPH_URL, query);
+        return resp;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+const getSendMessageTxFromAvailSubgraph = async (start) => {
+    try {
+        const limit = 1000;
+        const query = gql`query{
+                extrinsics(
+                  filter: { 
+                    call: { equalTo: "sendMessage" },
+                    success: { equalTo: true },
+                    blockHeight: {greaterThan: "${start}"}
+                  }
+                  first: ${limit}
+                  orderBy: BLOCK_HEIGHT_ASC
+                ) {
+                  nodes {
+                    id
+                    txHash
+                    module
+                    call
+                    blockHeight
+                    success
+                    isSigned
+                    extrinsicIndex
+                    hash
+                    timestamp
+                    signer
+                    signature
+                    fees
+                    nonce
+                    argsName
+                    argsValue
+                    nbEvents
+                  }
+                }
+        }`;
+        const resp = await request(config.AVAIL_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
         console.log(error);
@@ -130,7 +172,7 @@ export const updateSendAVAILOnEthereum = async () => {
 
         let findMore = true;
         while (findMore) {
-            const sendMessages = await getSendMessageTxFromSubgraph(start);
+            const sendMessages = await getSendMessageTxFromEthSubgraph(start);
             if (sendMessages && sendMessages.sendMessages && sendMessages.sendMessages.length === 1000) {
                 start += 1000;
             } else {
@@ -197,7 +239,7 @@ export const updateReceiveAVAILOnEthereum = async () => {
 
         let findMore = true;
         while (findMore) {
-            const receiveMessages = await getReceiveMessageTxFromSubgraph(start);
+            const receiveMessages = await getReceiveMessageTxFromEthSubgraph(start);
             if (receiveMessages && receiveMessages.receiveMessages && receiveMessages.receiveMessages.length === 1000) {
                 start += 1000;
             } else {
@@ -252,3 +294,61 @@ export const updateReceiveAVAILOnEthereum = async () => {
         return false;
     }
 }
+
+export const updateSendAVAILOnAvail = async () => {
+    try {
+        const count = await Transaction.find({
+            sourceChain: CHAIN.AVAIL,
+            destinationChain: CHAIN.ETHEREUM,
+            sourceTransactionHash: { $exists: true }
+        }).sort({ messageId: -1 }).limit(1);
+        let start = 0;
+        if (count && count.length > 0) {
+            start = count[0].blockNumber;
+        }
+
+        let findMore = true;
+        while (findMore) {
+            const sendMessages = await getSendMessageTxFromAvailSubgraph(start);
+            if (sendMessages && sendMessages.extrinsics &&
+                sendMessages.extrinsics.nodes && sendMessages.extrinsics.nodes.length === 1000
+            ) {
+                start += 1000;
+            } else {
+                findMore = false;
+            }
+
+            for (const transaction of sendMessages.extrinsics.nodes) {
+                if (transaction.argsValue && transaction.argsValue[0] === 'FungibleToken') {
+                    continue;
+                    await Transaction.updateOne(
+                        {
+                            // messageId: messageId,
+                            sourceChain: CHAIN.ETHEREUM,
+                            destinationChain: CHAIN.AVAIL
+                        },
+                        {
+                            sourceTransactionHash: transaction.txHash.toLowerCase(),
+                            sourceTransactionBlockNumber: transaction.blockHeight,
+                            sourceTransactionIndex: transaction.extrinsicIndex,
+                            sourceTransactionTimestamp: transaction.timestamp,
+                            depositorAddress: transaction.signer.toLowerCase(),
+                            receiverAddress: transaction.argsValue[1].toLowerCase(),
+                            amount: transaction.argsValue[3],
+                            dataType: DATA_TYPE.ERC20,
+                            status: TRANSACTION_STATUS.BRIDGED
+                        },
+                        {
+                            upsert: true,
+                            new: true
+                        }
+                    )
+                }
+            }
+        }
+        return true;
+    } catch (error) {
+        console.log(error)
+        return false;
+    }
+};

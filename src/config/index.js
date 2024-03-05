@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 
 config();
 
-
 export default {
   db: {
     url: process.env.MONGO_CONNECTION || 'mongodb://localhost:27017/avail',
@@ -18,5 +17,6 @@ export default {
   },
   NODE_ENV: process.env.NODE_ENV || 'production',
   BRIDGE_API: process.env.BRIDGE_API || 'https://bridge-api.sandbox.avail.tools',
-  SUBGRAPH_URL: process.env.SUBGRAPH_URL
+  ETHEREUM_SUBGRAPH_URL: process.env.ETHEREUM_SUBGRAPH_URL,
+  AVAIL_SUBGRAPH_URL: process.env.AVAIL_SUBGRAPH_URL
 };

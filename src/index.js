@@ -4,9 +4,12 @@ import {
   updateAvlReadyToClaim,
   updateEthReadyToClaim,
   updateSendAVAILOnEthereum,
-  updateReceiveAVAILOnEthereum
+  updateReceiveAVAILOnEthereum,
+  updateSendAVAILOnAvail
 } from "./services/transaction-cron.js";
-import { validateParams } from "./middleware/index.js";
+
+import callGetAvlProofSchema from './schema/callGetAvlProofSchema.js';
+import callGetEthProofSchema from './schema/callGetEthProofSchema.js';
 
 import fastify from "fastify";
 import cors from "@fastify/cors";
@@ -22,8 +25,8 @@ async function startApi() {
       origin: "*"
     });
 
-    app.get("/proof/eth", validateParams.validateEthProofParams, transactionController.callGetEthProof);
-    app.get("/proof/avl", validateParams.validateAvlProofParams, transactionController.callGetAvlProof);
+    app.get("/proof/eth", { schema: callGetAvlProofSchema }, transactionController.callGetEthProof);
+    app.get("/proof/avl", { schema: callGetEthProofSchema }, transactionController.callGetAvlProof);
 
     app.get('/health-check', async (req, res) => {
       res.status(200).send({
@@ -58,6 +61,7 @@ async function initialize() {
     schedule('*/2 * * * *', updateEthReadyToClaim);
     schedule('*/2 * * * *', updateSendAVAILOnEthereum);
     schedule('*/2 * * * *', updateReceiveAVAILOnEthereum);
+    schedule('*/2 * * * *', updateSendAVAILOnAvail);
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }
