@@ -1,65 +1,6 @@
-import config from "../config"
-import { Transaction } from '../models/transactions.js';
-import { TRANSACTION_STATUS, CHAIN } from '../config/constants';
+import config from "../config/index.js"
 
-const updateAvlReadyToClaim = async () => {
-    try {
-        let response = await axios({
-            method: "get",
-            url: `${config.BRIDGE_API}/avl/head`,
-        });
-
-        if (response && response.data && response.data.data && response.data.data.end) {
-            Transaction.updateMany(
-                {
-                    status: TRANSACTION_STATUS.BRIDGED,
-                    sourceTransactionBlockNumber: { $lt: response.data.data.end },
-                    sourceChain: CHAIN.AVAIL,
-                    destinationChain: CHAIN.ETHEREUM,
-                },
-                {
-                    transactionStatus: TRANSACTION_STATUS.READY_TO_CLAIM
-                }
-            )
-        }
-    } catch (error) {
-        console.log("something went wrong while axios call", error?.message);
-    }
-}
-
-const updateEthReadyToClaim = async () => {
-    try {
-        let response = await axios({
-            method: "get",
-            url: `${config.BRIDGE_API}/eth/head`,
-        });
-
-        if (response && response.data && response.data.slot) {
-            let block = await axios({
-                method: "get",
-                url: `${config.BRIDGE_API}/beacon/slot/${response.data.slot}`,
-            });
-            if (block && block.data && block.data.blockNumber) {
-                Transaction.updateMany(
-                    {
-                        status: TRANSACTION_STATUS.BRIDGED,
-                        sourceTransactionBlockNumber: { $lt: block.data.blockNumber },
-                        sourceChain: CHAIN.ETHEREUM,
-                        destinationChain: CHAIN.AVAIL,
-                    },
-                    {
-                        transactionStatus: TRANSACTION_STATUS.READY_TO_CLAIM
-                    }
-                )
-            }
-
-        }
-    } catch (error) {
-        console.log("something went wrong while axios call", error?.message);
-    }
-}
-
-const getEthProof = async (params) => {
+export const getEthProof = async (params) => {
     try {
         let response = await axios({
             method: "get",
@@ -68,11 +9,11 @@ const getEthProof = async (params) => {
 
         return response.data;
     } catch (error) {
-        console.log("something went wrong while axios call", error?.message);
+        console.log("something went wrong while axios call", error);
     }
 }
 
-const getAvlProof = async (params) => {
+export const getAvlProof = async (params) => {
     try {
         let response = await axios({
             method: "get",
@@ -81,13 +22,6 @@ const getAvlProof = async (params) => {
 
         return response.data;
     } catch (error) {
-        console.log("something went wrong while axios call", error?.message);
+        console.log("something went wrong while axios call", error);
     }
-}
-
-export {
-    updateAvlReadyToClaim,
-    updateEthReadyToClaim,
-    getEthProof,
-    getAvlProof
 }

@@ -1,5 +1,5 @@
-import { InfoError } from './errorHelper';
-import { handleError, handleBadRequest } from './responseHandlers';
+import { InfoError } from './errorHelper.js';
+import { handleError, handleBadRequest } from './responseHandlers.js';
 
 export default class ErrorHandler {
   static handleControllerError(

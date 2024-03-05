@@ -1,1 +1,1 @@
-export { default as validateParams } from './validateParams';
+export { default as validateParams } from './validateParams.js';

@@ -8,3 +8,9 @@ export const CHAIN = {
     AVAIL: "AVAIL",
     ETHEREUM: "ETHEREUM"
 }
+
+export const DATA_TYPE = {
+    MESSAGE: "MESSAGE",
+    ERC20: "ERC20",
+    ETHER: "ETHER"
+}

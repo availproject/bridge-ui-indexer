@@ -1,4 +1,4 @@
-import { handleBadRequest } from '../helpers/responseHandlers';
+import { handleBadRequest } from '../helpers/responseHandlers.js';
 
 export default {
 

@@ -1,73 +1,40 @@
-import { Mongoose, Schema } from "mongoose";
+import mongoose from 'mongoose';
+import config from '../config/index.js';
 
-let database = null;
+// Create the database connection
+const db = mongoose.createConnection(config.db.url, config.db.options);
+// mongoose.set('debug', true);
 
-/**
- * Database class is a singleton class that provides simple straightforward method to connect and disconnect to database 
- * with a particular collection. it has one inconsistency on not extending this class from mongoose due to mongoose implementation.
- * that is why mongoose is initialized in the constructor.
- */
-export class Database {
-  database;
-  url;
+// CONNECTION EVENTS
 
-  /**
-   * @param {string} url - The url for database that needs to be connected 
-   * this constructor will create instance of database and initialize it with database URL
-  */
-  constructor(url) {
-    this.url = url;
-    if (!database) {
-      this.database = new Mongoose();
-      database = this;
-    }
+// When successfully connected
+db.on('connected', () => {
+  console.log('Mongoose connection open to master DB');
+});
 
-    return database;
-  }
+// If the connection throws an error
+db.on('error', (err) => {
+  console.log(`Mongoose connection error for master DB: ${err}`);
+});
 
-  /**
-   * The method connect will connect to database and will return if already connnected to db. It is an async function
-   * to handle errors in better ways. It has a void return type. this function should only be called once when
-   * the class is initialized. there is no harm in calling the function again as it will return if its already
-   * connected to database
-   * 
-   * @returns {Promis<boolean>}
-   */
-  async connect() {
-    if (!(this.database.connection.readyState === 1 || this.database.connection.readyState === 2)) {
-      await this.database.connect(this.url);
-    }
+// When the connection is disconnected
+db.on('disconnected', () => {
+  console.log('Mongoose connection disconnected for master DB');
+});
 
-    return true;
-  }
+// When connection is reconnected
+db.on('reconnected', () => {
+  console.log('Mongoose connection reconnected for master DB');
+});
+// If the Node process ends, close the Mongoose connection
+process.on('SIGINT', () => {
+  db.close(() => {
+    console.log(
+      'Mongoose connection disconnected for master DB through app termination',
+    );
+    // eslint-disable-next-line no-process-exit
+    process.exit(0);
+  });
+});
 
-  /**
-  * it will disconnect from database if database is connected. and has a void return type. It is internally
-  * calling disconnect function of Mongoose. this function should only be called when database needs to be disconnected.
-  * 
-  * @returns {Promise<boolean>}
-  */
-  async disconnect() {
-    if (!(this.database.connection.readyState === 0 || this.database.connection.readyState === 3)) {
-      await this.database.disconnect();
-    }
-
-    return true;
-  }
-
-  /**
-   * Defines a model or retrieves it.
-   * Models defined on this mongoose instance are available to all connection created by the same mongoose instance.
-   * 
-   * @param {string} name - Name of the model. 
-   * @param {Schema} schema - Schema for which model is to be created. 
-   * 
-   * @returns {U} - The mongoose model.
-   */
-  model(
-    name,
-    schema,
-  ) {
-    return this.database.model(name, schema);
-  }
-}
+export const Database = db;

@@ -1,6 +1,8 @@
-import { Schema } from 'mongoose';
-import { Database } from '../connections/dbMaster';
-import { TRANSACTION_STATUS } from '../config/constants';
+import pkg from 'mongoose';
+import { Database } from '../connections/dbMaster.js';
+import { TRANSACTION_STATUS } from '../config/constants.js';
+
+const { Schema } = pkg;
 
 const TransactionSchema = new Schema({
   sourceChain: {
@@ -13,6 +15,7 @@ const TransactionSchema = new Schema({
   },
   messageId: {
     type: Number,
+    required: true,
   },
   status: {
     type: String,
@@ -40,7 +43,7 @@ const TransactionSchema = new Schema({
   destinationTransactionTimestamp: {
     type: Date
   },
-  sourceTransactionIndex: {
+  destinationTransactionIndex: {
     type: Number,
   },
   depositorAddress: {
@@ -54,12 +57,6 @@ const TransactionSchema = new Schema({
   },
   message: {
     type: String,
-  },
-  sourceContractAddress: {
-    type: String
-  },
-  destinationContractAddress: {
-    type: String
   },
   dataType: {
     type: String

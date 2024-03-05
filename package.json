@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:dev": "nodemon src/index.js",
@@ -17,17 +18,21 @@
   "author": "nitinmittal23",
   "license": "MIT",
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "abi-decoder": "^2.4.0",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "dotenv": "^10.0.0",
     "esm": "^3.2.25",
     "express": "^4.17.1",
+    "fastify": "^4.26.2",
     "graphql": "^15.5.1",
     "graphql-request": "^3.5.0",
     "helmet": "^4.6.0",
     "mongoose": "^5.13.2",
     "node-cron": "^3.0.0",
+    "nodemon": "^3.1.0",
     "web3": "^1.8.0-rc.0"
   },
   "devDependencies": {

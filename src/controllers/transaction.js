@@ -1,27 +1,9 @@
 import {
-    updateAvlReadyToClaim,
-    updateEthReadyToClaim,
     getEthProof,
     getAvlProof
 } from "../services/transaction.js";
-import { handleResponse } from '../helpers/responseHandlers';
-import ErrorHandler from '../helpers/errorHandler';
-
-const callUpdateAvlReadyToClaim = async () => {
-    try {
-        return await updateAvlReadyToClaim();
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-const callUpdateEthReadyToClaim = async () => {
-    try {
-        return await updateEthReadyToClaim();
-    } catch (error) {
-        console.error(error);
-    }
-}
+import { handleResponse } from '../helpers/responseHandlers.js';
+import ErrorHandler from '../helpers/errorHandler.js';
 
 const callGetEthProof = async (req, res) => {
     try {
@@ -44,8 +26,6 @@ const callGetAvlProof = async (req, res) => {
 }
 
 export default {
-    callUpdateAvlReadyToClaim,
-    callUpdateEthReadyToClaim,
     callGetEthProof,
     callGetAvlProof
 }
