@@ -101,6 +101,41 @@ const getSendMessageTxFromAvailSubgraph = async (start) => {
     }
 };
 
+const getEventFromExtrinsicIdFromAvailSubgraph = async (extrinsicId, eventType) => {
+    try {
+        const query = gql`query{
+                events(
+                  filter: { 
+                    event: { equalTo: "${eventType}" },
+                    extrinsicId: { equalTo: "${extrinsicId}" }
+                  }
+                ) {
+                  nodes {
+                    eventIndex
+                    blockHeight
+                    extrinsicId
+                    id
+                    module
+                    event
+                    call
+                    timestamp
+                    block {
+                        hash
+                    }
+                    argsName
+                    argsValue
+                  }
+                }
+        }`;
+
+        const resp = await request(config.AVAIL_SUBGRAPH_URL, query);
+        return resp;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
 export const updateAvlReadyToClaim = async () => {
     try {
         let response = await axios({
@@ -158,7 +193,7 @@ export const updateEthReadyToClaim = async () => {
     }
 }
 
-export const updateSendAVAILOnEthereum = async () => {
+export const updateSendOnEthereum = async () => {
     try {
         const count = await Transaction.find({
             sourceChain: CHAIN.ETHEREUM,
@@ -225,7 +260,7 @@ export const updateSendAVAILOnEthereum = async () => {
     }
 };
 
-export const updateReceiveAVAILOnEthereum = async () => {
+export const updateReceiveOnEthereum = async () => {
     try {
         const count = await Transaction.find({
             sourceChain: CHAIN.AVAIL,
@@ -295,13 +330,13 @@ export const updateReceiveAVAILOnEthereum = async () => {
     }
 }
 
-export const updateSendAVAILOnAvail = async () => {
+export const updateSendOnAvail = async () => {
     try {
         const count = await Transaction.find({
             sourceChain: CHAIN.AVAIL,
             destinationChain: CHAIN.ETHEREUM,
             sourceTransactionHash: { $exists: true }
-        }).sort({ messageId: -1 }).limit(1);
+        }).sort({ blockNumber: -1 }).limit(1);
         let start = 0;
         if (count && count.length > 0) {
             start = count[0].blockNumber;
@@ -319,36 +354,44 @@ export const updateSendAVAILOnAvail = async () => {
             }
 
             for (const transaction of sendMessages.extrinsics.nodes) {
-                if (transaction.argsValue && transaction.argsValue[0] === 'FungibleToken') {
-                    continue;
-                    await Transaction.updateOne(
-                        {
-                            // messageId: messageId,
-                            sourceChain: CHAIN.ETHEREUM,
-                            destinationChain: CHAIN.AVAIL
-                        },
-                        {
-                            sourceTransactionHash: transaction.txHash.toLowerCase(),
-                            sourceTransactionBlockNumber: transaction.blockHeight,
-                            sourceTransactionIndex: transaction.extrinsicIndex,
-                            sourceTransactionTimestamp: transaction.timestamp,
-                            depositorAddress: transaction.signer.toLowerCase(),
-                            receiverAddress: transaction.argsValue[1].toLowerCase(),
-                            amount: transaction.argsValue[3],
-                            dataType: DATA_TYPE.ERC20,
-                            status: TRANSACTION_STATUS.BRIDGED
-                        },
-                        {
-                            upsert: true,
-                            new: true
+                // console.log(transaction)
+                if (transaction.argsValue) {
+                    const value = JSON.parse(transaction.argsValue[0]);
+                    if(value && value.fungibleToken) {
+                        const event = await getEventFromExtrinsicIdFromAvailSubgraph(transaction.id, "MessageSubmitted")
+                        if (event.events && event.events.nodes[0]) {
+                            const data = event.events.nodes[0];
+                            await Transaction.updateOne(
+                                {
+                                    messageId: data.argsValue[4],
+                                    sourceChain: CHAIN.ETHEREUM,
+                                    destinationChain: CHAIN.AVAIL
+                                },
+                                {
+                                    sourceTransactionHash: transaction.txHash.toLowerCase(),
+                                    sourceTransactionBlockNumber: transaction.blockHeight,
+                                    sourceTransactionIndex: transaction.extrinsicIndex,
+                                    sourceTransactionTimestamp: transaction.timestamp,
+                                    depositorAddress: data.argsValue[0].toLowerCase(),
+                                    receiverAddress: transaction.argsValue[1].toLowerCase(),
+                                    sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
+                                    amount: parseInt(value.fungibleToken.amount, 16),
+                                    dataType: DATA_TYPE.ERC20,
+                                    status: TRANSACTION_STATUS.BRIDGED,
+                                    blockHash: transaction.hash
+                                },
+                                {
+                                    upsert: true,
+                                    new: true
+                                }
+                            )
                         }
-                    )
+                    }                    
                 }
             }
         }
         return true;
     } catch (error) {
-        console.log(error)
         return false;
     }
 };

@@ -3,9 +3,9 @@ import transactionController from "./controllers/transaction.js";
 import {
   updateAvlReadyToClaim,
   updateEthReadyToClaim,
-  updateSendAVAILOnEthereum,
-  updateReceiveAVAILOnEthereum,
-  updateSendAVAILOnAvail
+  updateSendOnEthereum,
+  updateReceiveOnEthereum,
+  updateSendOnAvail
 } from "./services/transaction-cron.js";
 
 import callGetAvlProofSchema from './schema/callGetAvlProofSchema.js';
@@ -59,9 +59,9 @@ async function initialize() {
   try {
     schedule('*/2 * * * *', updateAvlReadyToClaim);
     schedule('*/2 * * * *', updateEthReadyToClaim);
-    schedule('*/2 * * * *', updateSendAVAILOnEthereum);
-    schedule('*/2 * * * *', updateReceiveAVAILOnEthereum);
-    schedule('*/2 * * * *', updateSendAVAILOnAvail);
+    schedule('*/2 * * * *', updateSendOnEthereum);
+    schedule('*/2 * * * *', updateReceiveOnEthereum);
+    schedule('*/2 * * * *', updateSendOnAvail);
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }

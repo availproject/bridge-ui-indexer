@@ -34,6 +34,9 @@ const TransactionSchema = new Schema({
   sourceTransactionTimestamp: {
     type: Date
   },
+  sourceTokenAddress: {
+    type: String,
+  },
   destinationTransactionHash: {
     type: String,
   },
@@ -45,6 +48,9 @@ const TransactionSchema = new Schema({
   },
   destinationTransactionIndex: {
     type: Number,
+  },
+  destinationTokenAddress: {
+    type: String,
   },
   depositorAddress: {
     type: String
@@ -59,6 +65,9 @@ const TransactionSchema = new Schema({
     type: String,
   },
   dataType: {
+    type: String
+  },
+  blockHash: {
     type: String
   }
 }, { autoIndex: false });
