@@ -25,8 +25,17 @@ async function startApi() {
       origin: "*"
     });
 
-    app.get("/proof/eth", { schema: callGetAvlProofSchema }, transactionController.callGetEthProof);
-    app.get("/proof/avl", { schema: callGetEthProofSchema }, transactionController.callGetAvlProof);
+    app.get(
+      "/proof/eth",
+      { schema: callGetAvlProofSchema },
+      transactionController.callGetProofToClaimOnEthereum
+    );
+
+    app.get(
+      "/proof/avl",
+      { schema: callGetEthProofSchema },
+      transactionController.callGetProofToClaimOnAvail
+    );
 
     app.get('/health-check', async (req, res) => {
       res.status(200).send({

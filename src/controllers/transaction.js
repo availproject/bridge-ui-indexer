@@ -1,13 +1,13 @@
 import {
-    getEthProof,
-    getAvlProof
+    getProofToClaimOnEthereum,
+    getProofToClaimOnAvail
 } from "../services/transaction.js";
 import { handleResponse } from '../helpers/responseHandlers.js';
 import ErrorHandler from '../helpers/errorHandler.js';
 
-const callGetEthProof = async (req, res) => {
+const callGetProofToClaimOnEthereum = async (req, res) => {
     try {
-        const respObj = await getEthProof(req.query);
+        const respObj = await getProofToClaimOnEthereum(req.query);
         handleResponse({ res, data: respObj });
         return;
     } catch (error) {
@@ -15,9 +15,9 @@ const callGetEthProof = async (req, res) => {
     }
 }
 
-const callGetAvlProof = async (req, res) => {
+const callGetProofToClaimOnAvail = async (req, res) => {
     try {
-        const respObj = await getAvlProof(req.query);
+        const respObj = await getProofToClaimOnAvail(req.query);
         handleResponse({ res, data: respObj });
         return;
     } catch (error) {
@@ -26,6 +26,6 @@ const callGetAvlProof = async (req, res) => {
 }
 
 export default {
-    callGetEthProof,
-    callGetAvlProof
+    callGetProofToClaimOnEthereum,
+    callGetProofToClaimOnAvail
 }

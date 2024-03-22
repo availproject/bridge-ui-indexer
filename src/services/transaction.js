@@ -1,6 +1,6 @@
 import config from "../config/index.js"
 
-export const getEthProof = async (params) => {
+export const getProofToClaimOnEthereum = async (params) => {
     try {
         let response = await axios({
             method: "get",
@@ -13,7 +13,7 @@ export const getEthProof = async (params) => {
     }
 }
 
-export const getAvlProof = async (params) => {
+export const getProofToClaimOnAvail = async (params) => {
     try {
         let response = await axios({
             method: "get",
