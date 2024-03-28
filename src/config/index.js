@@ -16,7 +16,7 @@ export default {
     },
   },
   NODE_ENV: process.env.NODE_ENV || 'production',
-  BRIDGE_API: process.env.BRIDGE_API || 'https://bridge-api.sandbox.avail.tools',
+  BRIDGE_API: process.env.BRIDGE_API,
   ETHEREUM_SUBGRAPH_URL: process.env.ETHEREUM_SUBGRAPH_URL,
   AVAIL_SUBGRAPH_URL: process.env.AVAIL_SUBGRAPH_URL
 };

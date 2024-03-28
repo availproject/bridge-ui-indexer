@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@fastify/cors": "^9.0.1",
+    "@polkadot/keyring": "^12.6.2",
     "abi-decoder": "^2.4.0",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
