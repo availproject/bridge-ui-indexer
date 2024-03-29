@@ -4,18 +4,26 @@ export default {
         properties: {
             sourceChain: {
                 type: 'string',
+                nullable: true,
+                enum: ['AVAIL', 'ETHEREUM']
             },
             destinationChain: {
                 type: 'string',
+                nullable: true,
+                enum: ['AVAIL', 'ETHEREUM']
             },
             page: {
-                type: 'string'
+                type: 'string',
+                nullable: true,
             },
             pageSize: {
-                type: 'string'
+                type: 'string',
+                nullable: true,
             },
             status: {
-                type: 'string'
+                type: 'string',
+                nullable: true,
+                enum: ['BRIDGED', 'READY_TO_CLAIM', 'CLAIMED']
             }
         },
         required: []

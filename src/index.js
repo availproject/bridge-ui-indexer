@@ -40,7 +40,7 @@ async function startApi() {
     );
 
     app.get(
-      "/transactipn",
+      "/transactions",
       { schema: callGetTransactionsSchema },
       transactionController.callGetTransactions
     );
@@ -74,10 +74,10 @@ async function startApi() {
 // Initialization and Syncing Function
 async function initialize() {
   try {
-    await updateSendOnEthereum();
-    await updateReceiveOnAvail();
-    await updateSendOnAvail();
-    await updateReceiveOnEthereum(); 
+    // await updateSendOnEthereum();
+    // await updateReceiveOnAvail();
+    // await updateSendOnAvail();
+    // await updateReceiveOnEthereum(); 
     // await updateAvlReadyToClaim();
     // await updateEthReadyToClaim();
 
