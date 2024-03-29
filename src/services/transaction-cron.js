@@ -189,7 +189,7 @@ export const updateAvlReadyToClaim = async () => {
         });
 
         if (response && response.data && response.data.data && response.data.data.end) {
-            Transaction.updateMany(
+            await Transaction.updateMany(
                 {
                     status: TRANSACTION_STATUS.BRIDGED,
                     sourceTransactionBlockNumber: { $lt: response.data.data.end },
@@ -201,6 +201,20 @@ export const updateAvlReadyToClaim = async () => {
                 }
             )
         }
+
+        await Transaction.updateMany(
+            {
+                $or: [
+                    { status: TRANSACTION_STATUS.BRIDGED },
+                    { status: TRANSACTION_STATUS.READY_TO_CLAIM }
+                ],
+                sourceTransactionHash: { $exists: true },
+                destinationTransactionHash: { $exists: true }
+            },
+            {
+                transactionStatus: TRANSACTION_STATUS.CLAIMED
+            }
+        )
     } catch (error) {
         console.log("something went wrong while axios call", error);
     }
@@ -219,7 +233,7 @@ export const updateEthReadyToClaim = async () => {
                 url: `${config.BRIDGE_API}/beacon/slot/${response.data.slot}`,
             });
             if (block && block.data && block.data.blockNumber) {
-                Transaction.updateMany(
+                await Transaction.updateMany(
                     {
                         status: TRANSACTION_STATUS.BRIDGED,
                         sourceTransactionBlockNumber: { $lt: block.data.blockNumber },
@@ -231,7 +245,6 @@ export const updateEthReadyToClaim = async () => {
                     }
                 )
             }
-
         }
     } catch (error) {
         console.log("something went wrong while axios call", error);
@@ -397,7 +410,7 @@ export const updateSendOnAvail = async () => {
             if (sendMessages && sendMessages.extrinsics &&
                 sendMessages.extrinsics.nodes && sendMessages.extrinsics.nodes.length === 1000
             ) {
-                startBlockNumber = sendMessages.extrinsics.nodes[sendMessages.extrinsics.nodes.length-1].blockHeight;
+                startBlockNumber = sendMessages.extrinsics.nodes[sendMessages.extrinsics.nodes.length - 1].blockHeight;
             } else {
                 findMore = false;
             }
@@ -463,7 +476,7 @@ export const updateReceiveOnAvail = async () => {
             if (receiveMessage && receiveMessage.extrinsics &&
                 receiveMessage.extrinsics.nodes && receiveMessage.extrinsics.nodes.length === 1000
             ) {
-                startBlockNumber = receiveMessage.extrinsics.nodes[receiveMessage.extrinsics.nodes.length-1].blockHeight;
+                startBlockNumber = receiveMessage.extrinsics.nodes[receiveMessage.extrinsics.nodes.length - 1].blockHeight;
             } else {
                 findMore = false;
             }
