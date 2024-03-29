@@ -14,6 +14,7 @@ export function handleMessageSent(event: MessageSent): void {
   entity.to = event.params.to
   entity.messageId = event.params.messageId
   entity.block = event.block.number
+  entity.blockHash = event.block.hash
   entity.logIndex = event.logIndex.toString()
   entity.timestamp = event.block.timestamp
   entity.input = event.transaction.input
@@ -35,6 +36,7 @@ export function handleMessageReceived(event: MessageReceived): void {
   entity.to = event.params.to
   entity.messageId = event.params.messageId
   entity.block = event.block.number
+  entity.blockHash = event.block.hash
   entity.logIndex = event.logIndex.toString()
   entity.timestamp = event.block.timestamp
   entity.input = event.transaction.input

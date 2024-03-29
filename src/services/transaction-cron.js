@@ -22,6 +22,7 @@ const getSendMessageTxFromEthSubgraph = async (startBlockNumber) => {
                 logIndex,
                 transactionHash,
                 block,
+                blockHash,
                 timestamp,
                 input,
           }
@@ -29,7 +30,7 @@ const getSendMessageTxFromEthSubgraph = async (startBlockNumber) => {
         const resp = await request(config.ETHEREUM_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         throw error;
     }
 };
@@ -48,6 +49,7 @@ const getReceiveMessageTxFromEthSubgraph = async (startBlockNumber) => {
                 logIndex,
                 transactionHash,
                 block,
+                blockHash,
                 timestamp,
                 input,
           }
@@ -55,7 +57,7 @@ const getReceiveMessageTxFromEthSubgraph = async (startBlockNumber) => {
         const resp = await request(config.ETHEREUM_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         throw error;
     }
 };
@@ -97,7 +99,7 @@ const getSendMessageTxFromAvailSubgraph = async (startBlockNumber) => {
         const resp = await request(config.AVAIL_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         throw error;
     }
 };
@@ -139,7 +141,7 @@ const getReceiveMessageTxFromAvailSubgraph = async (startBlockNumber) => {
         const resp = await request(config.AVAIL_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         throw error;
     }
 };
@@ -174,7 +176,7 @@ const getEventFromExtrinsicIdFromAvailSubgraph = async (extrinsicId, eventType) 
         const resp = await request(config.AVAIL_SUBGRAPH_URL, query);
         return resp;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         throw error;
     }
 };
@@ -265,6 +267,7 @@ export const updateSendOnEthereum = async () => {
                     logIndex,
                     transactionHash,
                     block,
+                    blockHash,
                     timestamp,
                     input,
                 } = transaction;
@@ -281,6 +284,7 @@ export const updateSendOnEthereum = async () => {
                             sourceTransactionHash: transactionHash.toLowerCase(),
                             sourceTransactionBlockNumber: block,
                             sourceTransactionIndex: logIndex,
+                            sourceBlockHash: blockHash,
                             sourceTransactionTimestamp: new Date(timestamp * 1000).toISOString(),
                             depositorAddress: from.toLowerCase(),
                             receiverAddress: encodeAddress(to),
@@ -332,6 +336,7 @@ export const updateReceiveOnEthereum = async () => {
                     logIndex,
                     transactionHash,
                     block,
+                    blockHash,
                     timestamp,
                     input,
                 } = transaction;
@@ -352,6 +357,7 @@ export const updateReceiveOnEthereum = async () => {
                             destinationTransactionBlockNumber: block,
                             destinationTransactionIndex: logIndex,
                             destinationTransactionTimestamp: new Date(timestamp * 1000).toISOString(),
+                            destinationBlockHash: blockHash,
                             depositorAddress: encodeAddress(from),
                             receiverAddress: to.toLowerCase(),
                             amount: params[1].toString(),
@@ -420,7 +426,7 @@ export const updateSendOnAvail = async () => {
                                     amount: parseInt(value.fungibleToken.amount, 16),
                                     dataType: DATA_TYPE.ERC20,
                                     status: TRANSACTION_STATUS.BRIDGED,
-                                    blockHash: transaction.hash
+                                    sourceBlockHash: transaction.hash
                                 },
                                 {
                                     upsert: true,
@@ -434,7 +440,7 @@ export const updateSendOnAvail = async () => {
         }
         return true;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return false;
     }
 };
@@ -469,7 +475,6 @@ export const updateReceiveOnAvail = async () => {
                         const event = await getEventFromExtrinsicIdFromAvailSubgraph(transaction.id, "MessageExecuted")
                         if (event.events && event.events.nodes[0]) {
                             const data = event.events.nodes[0];
-                            console.log(value.message.fungibleToken)
                             await Transaction.updateOne(
                                 {
                                     messageId: data.argsValue[2],
@@ -487,7 +492,7 @@ export const updateReceiveOnAvail = async () => {
                                     amount: parseInt(value.message.fungibleToken.amount),
                                     dataType: DATA_TYPE.ERC20,
                                     status: TRANSACTION_STATUS.CLAIMED,
-                                    blockHash: transaction.hash
+                                    destinationBlockHash: transaction.hash
                                 },
                                 {
                                     upsert: true,
@@ -501,7 +506,7 @@ export const updateReceiveOnAvail = async () => {
         }
         return true;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return false;
     }
 };

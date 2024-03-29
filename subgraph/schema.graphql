@@ -4,6 +4,7 @@ type SendMessage @entity {
   to: Bytes!
   messageId: BigInt!
   block: BigInt!
+  blockHash: Bytes!
   timestamp: BigInt!
   transactionHash: Bytes!
   logIndex: String!
@@ -16,6 +17,7 @@ type ReceiveMessage @entity {
   to: Bytes!
   block: BigInt!
   messageId: BigInt!
+  blockHash: Bytes!
   timestamp: BigInt!
   transactionHash: Bytes!
   logIndex: String!

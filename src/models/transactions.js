@@ -37,6 +37,9 @@ const TransactionSchema = new Schema({
   sourceTokenAddress: {
     type: String,
   },
+  sourceBlockHash: {
+    type: String
+  },
   destinationTransactionHash: {
     type: String,
   },
@@ -48,6 +51,9 @@ const TransactionSchema = new Schema({
   },
   destinationTransactionIndex: {
     type: Number,
+  },
+  destinationBlockHash: {
+    type: String
   },
   destinationTokenAddress: {
     type: String,
@@ -65,9 +71,6 @@ const TransactionSchema = new Schema({
     type: String,
   },
   dataType: {
-    type: String
-  },
-  blockHash: {
     type: String
   }
 }, { autoIndex: false });
