@@ -20,6 +20,10 @@ export default {
                 type: 'string',
                 nullable: true,
             },
+            userAddress: {
+                type: 'string',
+                nullable: true,
+            },
             status: {
                 type: 'string',
                 nullable: true,

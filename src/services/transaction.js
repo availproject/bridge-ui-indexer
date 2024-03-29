@@ -1,7 +1,7 @@
 import { Transaction } from '../models/transactions.js';
 
 export const getAllTransactions = async (params) => {
-    let { sourceChain, destinationChain, page, pageSize, status } = params;
+    let { sourceChain, destinationChain, page, pageSize, status, userAddress } = params;
 
     let condition = {};
     if (sourceChain) {
@@ -12,6 +12,16 @@ export const getAllTransactions = async (params) => {
     }
     if (status) {
         condition = { ...condition, status };
+    }
+
+    if (userAddress) {
+        condition = {
+            ...condition,
+            $or: [
+                { depositorAddress: userAddress },
+                { receiverAddress: userAddress }
+            ]
+        };
     }
 
     if (!page) {

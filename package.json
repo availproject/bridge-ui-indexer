@@ -1,5 +1,5 @@
 {
-  "name": "avail-bridge-api",
+  "name": "avail-bridge-ui-indexer",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
