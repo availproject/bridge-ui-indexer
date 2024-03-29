@@ -426,7 +426,7 @@ export const updateSendOnAvail = async () => {
                                     amount: parseInt(value.fungibleToken.amount, 16),
                                     dataType: DATA_TYPE.ERC20,
                                     status: TRANSACTION_STATUS.BRIDGED,
-                                    sourceBlockHash: transaction.hash
+                                    sourceBlockHash: data.block.hash
                                 },
                                 {
                                     upsert: true,
@@ -492,7 +492,7 @@ export const updateReceiveOnAvail = async () => {
                                     amount: parseInt(value.message.fungibleToken.amount),
                                     dataType: DATA_TYPE.ERC20,
                                     status: TRANSACTION_STATUS.CLAIMED,
-                                    destinationBlockHash: transaction.hash
+                                    destinationBlockHash: data.block.hash
                                 },
                                 {
                                     upsert: true,

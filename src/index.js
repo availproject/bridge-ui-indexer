@@ -11,6 +11,7 @@ import {
 
 import callGetAvlProofSchema from './schema/callGetAvlProofSchema.js';
 import callGetEthProofSchema from './schema/callGetEthProofSchema.js';
+import callGetTransactionsSchema from './schema/callGetTransactionsSchema.js';
 
 import fastify from "fastify";
 import cors from "@fastify/cors";
@@ -28,14 +29,20 @@ async function startApi() {
 
     app.get(
       "/proof/eth",
-      { schema: callGetAvlProofSchema },
+      { schema: callGetEthProofSchema },
       transactionController.callGetProofToClaimOnEthereum
     );
 
     app.get(
       "/proof/avl",
-      { schema: callGetEthProofSchema },
+      { schema: callGetAvlProofSchema },
       transactionController.callGetProofToClaimOnAvail
+    );
+
+    app.get(
+      "/transactipn",
+      { schema: callGetTransactionsSchema },
+      transactionController.callGetTransactions
     );
 
     app.get('/health-check', async (req, res) => {
@@ -71,15 +78,15 @@ async function initialize() {
     await updateReceiveOnAvail();
     await updateSendOnAvail();
     await updateReceiveOnEthereum(); 
-    await updateAvlReadyToClaim();
-    await updateEthReadyToClaim();
+    // await updateAvlReadyToClaim();
+    // await updateEthReadyToClaim();
 
-    schedule('*/2 * * * *', updateAvlReadyToClaim);
-    schedule('*/2 * * * *', updateEthReadyToClaim);
-    schedule('*/2 * * * *', updateSendOnEthereum);
-    schedule('*/2 * * * *', updateReceiveOnEthereum);
-    schedule('*/2 * * * *', updateSendOnAvail);
-    schedule('*/2 * * * *', updateReceiveOnAvail);
+    // schedule('*/2 * * * *', updateAvlReadyToClaim);
+    // schedule('*/2 * * * *', updateEthReadyToClaim);
+    // schedule('*/2 * * * *', updateSendOnEthereum);
+    // schedule('*/2 * * * *', updateReceiveOnEthereum);
+    // schedule('*/2 * * * *', updateSendOnAvail);
+    // schedule('*/2 * * * *', updateReceiveOnAvail);
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }

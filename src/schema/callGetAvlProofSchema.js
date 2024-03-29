@@ -4,8 +4,11 @@ export default {
         properties: {
             messageId: {
                 type: 'string',
-            } 
+            },
+            blockHash: {
+                type: 'string',
+            }
         },
-        required: ['messageId']
+        required: ['messageId', 'blockHash']
     }
 }
