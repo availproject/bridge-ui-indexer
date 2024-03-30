@@ -75,26 +75,28 @@ async function startApi() {
 async function initialize() {
   try {
     await updateSendOnEthereum();
-    await updateReceiveOnAvail();
-    await updateSendOnAvail();
     await updateReceiveOnEthereum(); 
+    await updateSendOnAvail();
+    await updateReceiveOnAvail();
     await updateAvlReadyToClaim();
     await updateEthReadyToClaim();
 
-    schedule('*/2 * * * *', updateAvlReadyToClaim);
-    schedule('*/2 * * * *', updateEthReadyToClaim);
-    schedule('*/2 * * * *', updateSendOnEthereum);
-    schedule('*/2 * * * *', updateReceiveOnEthereum);
-    schedule('*/2 * * * *', updateSendOnAvail);
-    schedule('*/2 * * * *', updateReceiveOnAvail);
+    console.log("Initial Syncing completed.")
+
+    // schedule('*/2 * * * *', updateAvlReadyToClaim);
+    // schedule('*/2 * * * *', updateEthReadyToClaim);
+    // schedule('*/2 * * * *', updateSendOnEthereum);
+    // schedule('*/2 * * * *', updateReceiveOnEthereum);
+    // schedule('*/2 * * * *', updateSendOnAvail);
+    // schedule('*/2 * * * *', updateReceiveOnAvail);
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }
 };
 
 async function start() {
-  await initialize();
   await startApi();
+  await initialize();
 }
 
 start();

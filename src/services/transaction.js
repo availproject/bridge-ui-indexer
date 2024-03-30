@@ -19,7 +19,9 @@ export const getAllTransactions = async (params) => {
             ...condition,
             $or: [
                 { depositorAddress: userAddress },
-                { receiverAddress: userAddress }
+                { receiverAddress: userAddress },
+                { depositorAddress: userAddress.toLowercase() },
+                { receiverAddress: userAddress.toLowercase() }
             ]
         };
     }

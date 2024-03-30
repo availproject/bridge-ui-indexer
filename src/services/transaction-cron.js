@@ -7,10 +7,10 @@ import AvailBridgeAbi from '../config/AvailBridge.js';
 import AbiCoder from "web3-eth-abi";
 import axios from 'axios';
 import { encodeAddress } from '@polkadot/keyring';
+import BigNumber from "bignumber.js";
 
-const getSendMessageTxFromEthSubgraph = async (startBlockNumber) => {
+const getSendMessageTxFromEthSubgraph = async (startBlockNumber, limit) => {
     try {
-        const limit = 1000;
         const direction = 'asc';
         const sortBy = 'block';
         const query = gql`query{
@@ -35,9 +35,8 @@ const getSendMessageTxFromEthSubgraph = async (startBlockNumber) => {
     }
 };
 
-const getReceiveMessageTxFromEthSubgraph = async (startBlockNumber) => {
+const getReceiveMessageTxFromEthSubgraph = async (startBlockNumber, limit) => {
     try {
-        const limit = 1000;
         const direction = 'asc';
         const sortBy = 'block';
         const query = gql`query{
@@ -62,9 +61,8 @@ const getReceiveMessageTxFromEthSubgraph = async (startBlockNumber) => {
     }
 };
 
-const getSendMessageTxFromAvailSubgraph = async (startBlockNumber) => {
+const getSendMessageTxFromAvailSubgraph = async (startBlockNumber, limit) => {
     try {
-        const limit = 1000;
         const query = gql`query{
                 extrinsics(
                   filter: { 
@@ -104,9 +102,8 @@ const getSendMessageTxFromAvailSubgraph = async (startBlockNumber) => {
     }
 };
 
-const getReceiveMessageTxFromAvailSubgraph = async (startBlockNumber) => {
+const getReceiveMessageTxFromAvailSubgraph = async (startBlockNumber, limit) => {
     try {
-        const limit = 1000;
         const query = gql`query{
                 extrinsics(
                   filter: { 
@@ -253,6 +250,7 @@ export const updateEthReadyToClaim = async () => {
 
 export const updateSendOnEthereum = async () => {
     try {
+        const limit = 1000;
         const count = await Transaction.find({
             sourceChain: CHAIN.ETHEREUM,
             destinationChain: CHAIN.AVAIL,
@@ -265,8 +263,8 @@ export const updateSendOnEthereum = async () => {
 
         let findMore = true;
         while (findMore) {
-            const sendMessages = await getSendMessageTxFromEthSubgraph(startBlockNumber);
-            if (sendMessages && sendMessages.sendMessages && sendMessages.sendMessages.length === 1000) {
+            const sendMessages = await getSendMessageTxFromEthSubgraph(startBlockNumber, limit);
+            if (sendMessages && sendMessages.sendMessages && sendMessages.sendMessages.length === limit) {
                 startBlockNumber = sendMessages.sendMessages[sendMessages.sendMessages.length - 1].block;
             } else {
                 findMore = false;
@@ -286,7 +284,10 @@ export const updateSendOnEthereum = async () => {
                 } = transaction;
 
                 const decodedData = getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi.abi, 'sendAVAIL');
-                if (decodedData.success && decodedData.result) {
+                if (
+                    decodedData.success && decodedData.result &&
+                    new BigNumber(decodedData.result.params[1].value).gt(0)
+                ) {
                     await Transaction.updateOne(
                         {
                             messageId: messageId,
@@ -322,6 +323,7 @@ export const updateSendOnEthereum = async () => {
 
 export const updateReceiveOnEthereum = async () => {
     try {
+        const limit = 1000;
         const count = await Transaction.find({
             sourceChain: CHAIN.AVAIL,
             destinationChain: CHAIN.ETHEREUM,
@@ -334,8 +336,8 @@ export const updateReceiveOnEthereum = async () => {
 
         let findMore = true;
         while (findMore) {
-            const receiveMessages = await getReceiveMessageTxFromEthSubgraph(startBlockNumber);
-            if (receiveMessages && receiveMessages.receiveMessages && receiveMessages.receiveMessages.length === 1000) {
+            const receiveMessages = await getReceiveMessageTxFromEthSubgraph(startBlockNumber, limit);
+            if (receiveMessages && receiveMessages.receiveMessages && receiveMessages.receiveMessages.length === limit) {
                 startBlockNumber = receiveMessages.receiveMessages[receiveMessages.receiveMessages.length - 1].block;
             } else {
                 findMore = false;
@@ -359,29 +361,31 @@ export const updateReceiveOnEthereum = async () => {
                     const data = decodedData[0].data;
                     const params = AbiCoder.decodeParameters(["address", "uint256"], data);
 
-                    await Transaction.updateOne(
-                        {
-                            messageId: messageId,
-                            sourceChain: CHAIN.AVAIL,
-                            destinationChain: CHAIN.ETHEREUM
-                        },
-                        {
-                            destinationTransactionHash: transactionHash.toLowerCase(),
-                            destinationTransactionBlockNumber: block,
-                            destinationTransactionIndex: logIndex,
-                            destinationTransactionTimestamp: new Date(timestamp * 1000).toISOString(),
-                            destinationBlockHash: blockHash,
-                            depositorAddress: encodeAddress(from),
-                            receiverAddress: to.toLowerCase(),
-                            amount: params[1].toString(),
-                            dataType: DATA_TYPE.ERC20,
-                            status: TRANSACTION_STATUS.CLAIMED
-                        },
-                        {
-                            upsert: true,
-                            new: true
-                        }
-                    )
+                    if (new BigNumber(params[1]).gt(0)) {
+                        await Transaction.updateOne(
+                            {
+                                messageId: messageId,
+                                sourceChain: CHAIN.AVAIL,
+                                destinationChain: CHAIN.ETHEREUM
+                            },
+                            {
+                                destinationTransactionHash: transactionHash.toLowerCase(),
+                                destinationTransactionBlockNumber: block,
+                                destinationTransactionIndex: logIndex,
+                                destinationTransactionTimestamp: new Date(timestamp * 1000).toISOString(),
+                                destinationBlockHash: blockHash,
+                                depositorAddress: encodeAddress(from),
+                                receiverAddress: to.toLowerCase(),
+                                amount: params[1].toString(),
+                                dataType: DATA_TYPE.ERC20,
+                                status: TRANSACTION_STATUS.CLAIMED
+                            },
+                            {
+                                upsert: true,
+                                new: true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -394,6 +398,7 @@ export const updateReceiveOnEthereum = async () => {
 
 export const updateSendOnAvail = async () => {
     try {
+        const limit = 1000;
         const count = await Transaction.find({
             sourceChain: CHAIN.AVAIL,
             destinationChain: CHAIN.ETHEREUM,
@@ -406,9 +411,9 @@ export const updateSendOnAvail = async () => {
 
         let findMore = true;
         while (findMore) {
-            const sendMessages = await getSendMessageTxFromAvailSubgraph(startBlockNumber);
+            const sendMessages = await getSendMessageTxFromAvailSubgraph(startBlockNumber, limit);
             if (sendMessages && sendMessages.extrinsics &&
-                sendMessages.extrinsics.nodes && sendMessages.extrinsics.nodes.length === 1000
+                sendMessages.extrinsics.nodes && sendMessages.extrinsics.nodes.length === limit
             ) {
                 startBlockNumber = sendMessages.extrinsics.nodes[sendMessages.extrinsics.nodes.length - 1].blockHeight;
             } else {
@@ -418,7 +423,10 @@ export const updateSendOnAvail = async () => {
             for (const transaction of sendMessages.extrinsics.nodes) {
                 if (transaction.argsValue) {
                     const value = JSON.parse(transaction.argsValue[0]);
-                    if (value && value.fungibleToken) {
+                    if (
+                        value && value.fungibleToken &&
+                        new BigNumber(value.fungibleToken.amount, 16).gt(0)
+                    ) {
                         const event = await getEventFromExtrinsicIdFromAvailSubgraph(transaction.id, "MessageSubmitted")
                         if (event.events && event.events.nodes[0]) {
                             const data = event.events.nodes[0];
@@ -460,6 +468,7 @@ export const updateSendOnAvail = async () => {
 
 export const updateReceiveOnAvail = async () => {
     try {
+        const limit = 1000;
         const count = await Transaction.find({
             sourceChain: CHAIN.ETHEREUM,
             destinationChain: CHAIN.AVAIL,
@@ -472,9 +481,9 @@ export const updateReceiveOnAvail = async () => {
 
         let findMore = true;
         while (findMore) {
-            const receiveMessage = await getReceiveMessageTxFromAvailSubgraph(startBlockNumber);
+            const receiveMessage = await getReceiveMessageTxFromAvailSubgraph(startBlockNumber, limit);
             if (receiveMessage && receiveMessage.extrinsics &&
-                receiveMessage.extrinsics.nodes && receiveMessage.extrinsics.nodes.length === 1000
+                receiveMessage.extrinsics.nodes && receiveMessage.extrinsics.nodes.length === limit
             ) {
                 startBlockNumber = receiveMessage.extrinsics.nodes[receiveMessage.extrinsics.nodes.length - 1].blockHeight;
             } else {
@@ -484,7 +493,10 @@ export const updateReceiveOnAvail = async () => {
             for (const transaction of receiveMessage.extrinsics.nodes) {
                 if (transaction.argsValue) {
                     const value = JSON.parse(transaction.argsValue[1]);
-                    if (value && value.message && value.message.fungibleToken) {
+                    if (
+                        value && value.message && value.message.fungibleToken &&
+                        new BigNumber(value.message.fungibleToken.amount, 16).gt(0)
+                    ) {
                         const event = await getEventFromExtrinsicIdFromAvailSubgraph(transaction.id, "MessageExecuted")
                         if (event.events && event.events.nodes[0]) {
                             const data = event.events.nodes[0];
