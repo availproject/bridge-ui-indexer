@@ -83,12 +83,12 @@ async function initialize() {
 
     console.log("Initial Syncing completed.")
 
-    // schedule('*/2 * * * *', updateAvlReadyToClaim);
-    // schedule('*/2 * * * *', updateEthReadyToClaim);
-    // schedule('*/2 * * * *', updateSendOnEthereum);
-    // schedule('*/2 * * * *', updateReceiveOnEthereum);
-    // schedule('*/2 * * * *', updateSendOnAvail);
-    // schedule('*/2 * * * *', updateReceiveOnAvail);
+    schedule('*/2 * * * *', updateAvlReadyToClaim);
+    schedule('*/2 * * * *', updateEthReadyToClaim);
+    schedule('*/2 * * * *', updateSendOnEthereum);
+    schedule('*/2 * * * *', updateReceiveOnEthereum);
+    schedule('*/2 * * * *', updateSendOnAvail);
+    schedule('*/2 * * * *', updateReceiveOnAvail);
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }

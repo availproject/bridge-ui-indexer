@@ -186,6 +186,12 @@ export const updateAvlReadyToClaim = async () => {
         });
 
         if (response && response.data && response.data.data && response.data.data.end) {
+            console.log({
+                status: TRANSACTION_STATUS.BRIDGED,
+                sourceTransactionBlockNumber: { $lt: response.data.data.end },
+                sourceChain: CHAIN.AVAIL,
+                destinationChain: CHAIN.ETHEREUM,
+            })
             await Transaction.updateMany(
                 {
                     status: TRANSACTION_STATUS.BRIDGED,
@@ -194,7 +200,7 @@ export const updateAvlReadyToClaim = async () => {
                     destinationChain: CHAIN.ETHEREUM,
                 },
                 {
-                    transactionStatus: TRANSACTION_STATUS.READY_TO_CLAIM
+                    status: TRANSACTION_STATUS.READY_TO_CLAIM
                 }
             )
         }
@@ -209,7 +215,7 @@ export const updateAvlReadyToClaim = async () => {
                 destinationTransactionHash: { $exists: true }
             },
             {
-                transactionStatus: TRANSACTION_STATUS.CLAIMED
+                status: TRANSACTION_STATUS.CLAIMED
             }
         )
     } catch (error) {
@@ -238,7 +244,7 @@ export const updateEthReadyToClaim = async () => {
                         destinationChain: CHAIN.AVAIL,
                     },
                     {
-                        transactionStatus: TRANSACTION_STATUS.READY_TO_CLAIM
+                        status: TRANSACTION_STATUS.READY_TO_CLAIM
                     }
                 )
             }
