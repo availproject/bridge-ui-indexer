@@ -398,7 +398,7 @@ export const updateReceiveOnEthereum = async () => {
 
 export const updateSendOnAvail = async () => {
     try {
-        const limit = 1000;
+        const limit = 500;
         const count = await Transaction.find({
             sourceChain: CHAIN.AVAIL,
             destinationChain: CHAIN.ETHEREUM,
@@ -468,7 +468,7 @@ export const updateSendOnAvail = async () => {
 
 export const updateReceiveOnAvail = async () => {
     try {
-        const limit = 1000;
+        const limit = 500;
         const count = await Transaction.find({
             sourceChain: CHAIN.ETHEREUM,
             destinationChain: CHAIN.AVAIL,
