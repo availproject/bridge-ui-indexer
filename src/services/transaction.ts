@@ -8,12 +8,12 @@ interface IGetAllTransaction {
     userAddress?: string;
     status?: string;
 }
+
 export default class TransactionService {
     async getAllTransactions(params: IGetAllTransaction) {
         let { sourceChain, page, pageSize, status, userAddress } = params;
 
         let where = {};
-        where = { ...where, sourceChain };
         if (status) {
             where = { ...where, status };
         }
@@ -111,8 +111,18 @@ export default class TransactionService {
             });
         }
 
+        const result: any = []
+
+        transactions.forEach(obj => {
+            result.push(JSON.parse(JSON.stringify(obj, (key, value) =>
+                typeof value === 'bigint'
+                    ? value.toString()
+                    : value
+            )))
+        })
+
         return {
-            result: transactions,
+            result: result,
             paginationData: {
                 page: offset,
                 pageSize: limit,
