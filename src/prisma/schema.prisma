@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MessageType {
+  ARBITRARY_MESSAGE
+  FUNGIBLE_TOKEN
+}
+
+model availsends {
+  messageId Int @id
+  status String @default("SENT")
+  sourceTransactionHash String? @db.VarChar(66)
+  sourceBlockNumber BigInt?
+  sourceBlockHash String? @db.VarChar(66)
+  sourceTransactionIndex BigInt?
+  sourceTimestamp DateTime?
+  sourceTokenAddress String? @db.VarChar(66)
+  destinationTransactionHash String? @db.VarChar(66)
+  destinationBlockNumber BigInt?
+  destinationBlockHash String? @db.VarChar(66)
+  destinationTransactionIndex Int?
+  destinationTimestamp DateTime?
+  destinationTokenAddress String? @db.VarChar(42)
+  depositorAddress String @db.VarChar(66)
+  receiverAddress String @db.VarChar(42)
+  amount BigInt?
+  message String?
+  dataType MessageType
+}
+
+model ethereumsends {
+  messageId Int @id
+  status String @default("SENT")
+  sourceTransactionHash String? @db.VarChar(66)
+  sourceBlockNumber BigInt?
+  sourceBlockHash String? @db.VarChar(66)
+  sourceTransactionIndex BigInt?
+  sourceTimestamp DateTime?
+  sourceTokenAddress String? @db.VarChar(66)
+  destinationTransactionHash String? @db.VarChar(66)
+  destinationBlockNumber BigInt?
+  destinationBlockHash String? @db.VarChar(66)
+  destinationTransactionIndex Int?
+  destinationTimestamp DateTime?
+  destinationTokenAddress String? @db.VarChar(42)
+  depositorAddress String @db.VarChar(66)
+  receiverAddress String @db.VarChar(42)
+  amount BigInt?
+  message String?
+  dataType MessageType
+}

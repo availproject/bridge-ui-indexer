@@ -4,12 +4,6 @@ export default {
         properties: {
             sourceChain: {
                 type: 'string',
-                nullable: true,
-                enum: ['AVAIL', 'ETHEREUM']
-            },
-            destinationChain: {
-                type: 'string',
-                nullable: true,
                 enum: ['AVAIL', 'ETHEREUM']
             },
             page: {

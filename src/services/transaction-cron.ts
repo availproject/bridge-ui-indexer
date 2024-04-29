@@ -1,15 +1,18 @@
-import { Transaction } from '../models/transactions.js';
-import { TRANSACTION_STATUS, CHAIN, DATA_TYPE } from '../config/constants.js';
 import Decoder from '../helpers/decoder.js';
-import AvailBridgeAbi from '../config/AvailBridge.js';
-import AbiCoder from "web3-eth-abi";
+import AvailBridgeAbi from '../abi/AvailBridge.js';
+import ABICoder from "web3-eth-abi";
 import { encodeAddress } from '@polkadot/keyring';
-import BigNumber from "bignumber.js";
+import BN from "bignumber.js";
 import AvailIndexer from './avail-indexer.js';
 import EthIndexer from './eth-indexer.js';
 import BridgeApi from './bridge-api.js';
+import { PrismaClient } from '@prisma/client'
+import { ABI } from 'abi-decoder-ts/cjs/types.js';
 
+const AbiCoder = ABICoder.default;
+const BigNumber = BN.default;
 const decoder = new Decoder();
+const prisma = new PrismaClient();
 
 export default class TransactionCron {
     constructor(
@@ -21,14 +24,18 @@ export default class TransactionCron {
     async updateEthereumSend(): Promise<boolean> {
         try {
             const limit = 1000;
-            const count = await Transaction.find({
-                sourceChain: CHAIN.ETHEREUM,
-                destinationChain: CHAIN.AVAIL,
-                sourceTransactionHash: { $exists: true }
-            }).sort({ sourceTransactionBlockNumber: -1 }).limit(1);
+            const latestTransaction = await prisma.ethereumsends.findFirst({
+                where: {
+                    sourceTransactionHash: { not: null }
+                },
+                orderBy: {
+                    sourceBlockNumber: 'desc'
+                },
+                take: 1
+            });
             let startBlockNumber = 0;
-            if (count && count.length > 0) {
-                startBlockNumber = count[0].sourceTransactionBlockNumber;
+            if (latestTransaction) {
+                startBlockNumber = latestTransaction.sourceBlockNumber;
             }
 
             let findMore = true;
@@ -53,34 +60,39 @@ export default class TransactionCron {
                         input,
                     } = transaction;
 
-                    const decodedData = decoder.getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi, 'sendAVAIL');
+                    const decodedData = decoder.getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi as ABI.Item[], 'sendAVAIL');
                     if (
                         decodedData.success && decodedData.result &&
                         new BigNumber(decodedData.result.params[1].value).gt(0)
                     ) {
-                        await Transaction.updateOne(
-                            {
-                                messageId: messageId,
-                                sourceChain: CHAIN.ETHEREUM,
-                                destinationChain: CHAIN.AVAIL
-                            },
-                            {
+                        await prisma.ethereumsends.upsert({
+                            where: { messageId: { messageId } },
+                            update: {
                                 sourceTransactionHash: transactionHash.toLowerCase(),
-                                sourceTransactionBlockNumber: block,
+                                sourceBlockNumber: block,
                                 sourceTransactionIndex: logIndex,
                                 sourceBlockHash: blockHash,
-                                sourceTransactionTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
+                                sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                 depositorAddress: from.toLowerCase(),
                                 receiverAddress: encodeAddress(to),
                                 amount: decodedData.result.params[1].value,
-                                dataType: DATA_TYPE.ERC20,
-                                status: TRANSACTION_STATUS.BRIDGED
+                                dataType: 'ERC20',
+                                status: 'SENT'
                             },
-                            {
-                                upsert: true,
-                                new: true
+                            create: {
+                                messageId,
+                                sourceTransactionHash: transactionHash.toLowerCase(),
+                                sourceBlockNumber: block,
+                                sourceTransactionIndex: logIndex,
+                                sourceBlockHash: blockHash,
+                                sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
+                                depositorAddress: from.toLowerCase(),
+                                receiverAddress: encodeAddress(to),
+                                amount: decodedData.result.params[1].value,
+                                dataType: 'ERC20',
+                                status: 'SENT'
                             }
-                        )
+                        });
                     }
                 }
             }
@@ -94,14 +106,18 @@ export default class TransactionCron {
     async updateEthereumReceive(): Promise<boolean> {
         try {
             const limit = 1000;
-            const count = await Transaction.find({
-                sourceChain: CHAIN.AVAIL,
-                destinationChain: CHAIN.ETHEREUM,
-                destinationTransactionHash: { $exists: true }
-            }).sort({ destinationTransactionBlockNumber: -1 }).limit(1);
+            const latestTransaction = await prisma.availsends.findFirst({
+                where: {
+                    destinationTransactionHash: { not: null }
+                },
+                orderBy: {
+                    destinationBlockNumber: 'desc'
+                },
+                take: 1
+            });
             let startBlockNumber = 0;
-            if (count && count.length > 0) {
-                startBlockNumber = count[0].destinationTransactionBlockNumber;
+            if (latestTransaction) {
+                startBlockNumber = latestTransaction.destinationBlockNumber;
             }
 
             let findMore = true;
@@ -132,29 +148,34 @@ export default class TransactionCron {
                         const params = AbiCoder.decodeParameters(["address", "uint256"], data);
 
                         if (new BigNumber(params[1]).gt(0)) {
-                            await Transaction.updateOne(
-                                {
-                                    messageId: messageId,
-                                    sourceChain: CHAIN.AVAIL,
-                                    destinationChain: CHAIN.ETHEREUM
-                                },
-                                {
+                            await prisma.availsends.upsert({
+                                where: { messageId: { messageId } },
+                                update: {
                                     destinationTransactionHash: transactionHash.toLowerCase(),
-                                    destinationTransactionBlockNumber: block,
+                                    destinationBlockNumber: block,
                                     destinationTransactionIndex: logIndex,
-                                    destinationTransactionTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
+                                    destinationTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                     destinationBlockHash: blockHash,
                                     depositorAddress: encodeAddress(from),
                                     receiverAddress: to.toLowerCase(),
                                     amount: params[1].toString(),
-                                    dataType: DATA_TYPE.ERC20,
-                                    status: TRANSACTION_STATUS.CLAIMED
+                                    dataType: 'ERC20',
+                                    status: 'CLAIMED'
                                 },
-                                {
-                                    upsert: true,
-                                    new: true
+                                create: {
+                                    messageId,
+                                    destinationTransactionHash: transactionHash.toLowerCase(),
+                                    destinationBlockNumber: block,
+                                    destinationTransactionIndex: logIndex,
+                                    destinationTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
+                                    destinationBlockHash: blockHash,
+                                    depositorAddress: encodeAddress(from),
+                                    receiverAddress: to.toLowerCase(),
+                                    amount: params[1].toString(),
+                                    dataType: 'ERC20',
+                                    status: 'CLAIMED'
                                 }
-                            )
+                            });
                         }
                     }
                 }
@@ -169,14 +190,18 @@ export default class TransactionCron {
     async updateSendOnAvail(): Promise<boolean> {
         try {
             const limit = 500;
-            const count = await Transaction.find({
-                sourceChain: CHAIN.AVAIL,
-                destinationChain: CHAIN.ETHEREUM,
-                sourceTransactionHash: { $exists: true }
-            }).sort({ sourceTransactionBlockNumber: -1 }).limit(1);
+            const latestTransaction = await prisma.availsends.findFirst({
+                where: {
+                    sourceTransactionHash: { not: null }
+                },
+                orderBy: {
+                    sourceBlockNumber: 'desc'
+                },
+                take: 1
+            });
             let startBlockNumber = 0;
-            if (count && count.length > 0) {
-                startBlockNumber = count[0].sourceTransactionBlockNumber;
+            if (latestTransaction) {
+                startBlockNumber = latestTransaction.sourceBlockNumber;
             }
 
             let findMore = true;
@@ -199,30 +224,36 @@ export default class TransactionCron {
                             const event = await this.availIndexer.getEventFromExtrinsicId(transaction.id, "MessageSubmitted")
                             if (event && event[0]) {
                                 const data = event[0];
-                                await Transaction.updateOne(
-                                    {
-                                        messageId: data.argsValue[4],
-                                        sourceChain: CHAIN.AVAIL,
-                                        destinationChain: CHAIN.ETHEREUM
-                                    },
-                                    {
+                                await prisma.availsends.upsert({
+                                    where: { messageId: { messageId: data.argsValue[4] } },
+                                    update: {
                                         sourceTransactionHash: transaction.txHash.toLowerCase(),
-                                        sourceTransactionBlockNumber: transaction.blockHeight,
+                                        sourceBlockNumber: transaction.blockHeight,
                                         sourceTransactionIndex: transaction.extrinsicIndex,
-                                        sourceTransactionTimestamp: transaction.timestamp,
+                                        sourceTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0],
                                         receiverAddress: transaction.argsValue[1].slice(0, 42).toLowerCase(),
                                         sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
                                         amount: parseInt(value.fungibleToken.amount, 16),
-                                        dataType: DATA_TYPE.ERC20,
-                                        status: TRANSACTION_STATUS.BRIDGED,
+                                        dataType: 'ERC20',
+                                        status: 'BRIDGED',
                                         sourceBlockHash: data.block.hash
                                     },
-                                    {
-                                        upsert: true,
-                                        new: true
+                                    create: {
+                                        messageId: data.argsValue[4],
+                                        sourceTransactionHash: transaction.txHash.toLowerCase(),
+                                        sourceBlockNumber: transaction.blockHeight,
+                                        sourceTransactionIndex: transaction.extrinsicIndex,
+                                        sourceTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
+                                        depositorAddress: data.argsValue[0],
+                                        receiverAddress: transaction.argsValue[1].slice(0, 42).toLowerCase(),
+                                        sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
+                                        amount: parseInt(value.fungibleToken.amount, 16),
+                                        dataType: 'ERC20',
+                                        status: 'BRIDGED',
+                                        sourceBlockHash: data.block.hash
                                     }
-                                )
+                                });
                             }
                         }
                     }
@@ -238,14 +269,18 @@ export default class TransactionCron {
     async updateReceiveOnAvail(): Promise<boolean> {
         try {
             const limit = 500;
-            const count = await Transaction.find({
-                sourceChain: CHAIN.ETHEREUM,
-                destinationChain: CHAIN.AVAIL,
-                destinationTransactionHash: { $exists: true }
-            }).sort({ destinationTransactionBlockNumber: -1 }).limit(1);
+            const latestTransaction = await prisma.ethereumsends.findFirst({
+                where: {
+                    destinationTransactionHash: { not: null }
+                },
+                orderBy: {
+                    destinationBlockNumber: 'desc'
+                },
+                take: 1
+            });
             let startBlockNumber = 0;
-            if (count && count.length > 0) {
-                startBlockNumber = count[0].destinationTransactionBlockNumber;
+            if (latestTransaction) {
+                startBlockNumber = latestTransaction.destinationBlockNumber;
             }
 
             let findMore = true;
@@ -268,30 +303,36 @@ export default class TransactionCron {
                             const event = await this.availIndexer.getEventFromExtrinsicId(transaction.id, "MessageExecuted")
                             if (event && event[0]) {
                                 const data = event[0];
-                                await Transaction.updateOne(
-                                    {
-                                        messageId: data.argsValue[2],
-                                        sourceChain: CHAIN.ETHEREUM,
-                                        destinationChain: CHAIN.AVAIL
-                                    },
-                                    {
+                                await prisma.transaction.upsert({
+                                    where: { messageId: { messageId: data.argsValue[2] } },
+                                    update: {
                                         destinationTransactionHash: transaction.txHash.toLowerCase(),
-                                        destinationTransactionBlockNumber: transaction.blockHeight,
+                                        destinationBlockNumber: transaction.blockHeight,
                                         destinationTransactionIndex: transaction.extrinsicIndex,
-                                        destinationTransactionTimestamp: transaction.timestamp,
+                                        destinationTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
                                         receiverAddress: encodeAddress(data.argsValue[1]),
                                         destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
                                         amount: parseInt(value.message.fungibleToken.amount),
-                                        dataType: DATA_TYPE.ERC20,
-                                        status: TRANSACTION_STATUS.CLAIMED,
+                                        dataType: 'ERC20',
+                                        status: 'CLAIMED',
                                         destinationBlockHash: data.block.hash
                                     },
-                                    {
-                                        upsert: true,
-                                        new: true
+                                    create: {
+                                        messageId: data.argsValue[2],
+                                        destinationTransactionHash: transaction.txHash.toLowerCase(),
+                                        destinationTransactionBlockNumber: transaction.blockHeight,
+                                        destinationTransactionIndex: transaction.extrinsicIndex,
+                                        destinationTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
+                                        depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
+                                        receiverAddress: encodeAddress(data.argsValue[1]),
+                                        destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
+                                        amount: parseInt(value.message.fungibleToken.amount),
+                                        dataType: 'ERC20',
+                                        status: 'CLAIMED',
+                                        destinationBlockHash: data.block.hash
                                     }
-                                )
+                                });
                             }
                         }
                     }
@@ -309,38 +350,45 @@ export default class TransactionCron {
             let response = await this.bridgeApi.getAvailLatestHeadOnEthereum();
 
             if (response && response.data && response.data.data && response.data.data.end) {
-                console.log({
-                    status: TRANSACTION_STATUS.BRIDGED,
-                    sourceTransactionBlockNumber: { $lt: response.data.data.end },
-                    sourceChain: CHAIN.AVAIL,
-                    destinationChain: CHAIN.ETHEREUM,
-                })
-                await Transaction.updateMany(
-                    {
-                        status: TRANSACTION_STATUS.BRIDGED,
-                        sourceTransactionBlockNumber: { $lt: response.data.data.end },
-                        sourceChain: CHAIN.AVAIL,
-                        destinationChain: CHAIN.ETHEREUM,
+                await prisma.availsends.updateMany({
+                    where: {
+                        status: 'SENT',
+                        sourceBlockNumber: { lte: response.data.data.end }
                     },
-                    {
-                        status: TRANSACTION_STATUS.READY_TO_CLAIM
+                    data: {
+                        status: 'READY_TO_CLAIM'
                     }
-                )
+                });
             }
 
-            await Transaction.updateMany(
-                {
-                    $or: [
-                        { status: TRANSACTION_STATUS.BRIDGED },
-                        { status: TRANSACTION_STATUS.READY_TO_CLAIM }
+            await prisma.availsends.updateMany({
+                where: {
+                    OR: [
+                        { status: 'SENT' },
+                        { status: 'READY_TO_CLAIM' }
                     ],
-                    sourceTransactionHash: { $exists: true },
-                    destinationTransactionHash: { $exists: true }
+                    sourceTransactionHash: { not: null },
+                    destinationTransactionHash: { not: null }
                 },
-                {
-                    status: TRANSACTION_STATUS.CLAIMED
+                data: {
+                    status: 'CLAIMED'
                 }
-            )
+            });
+
+            await prisma.ethereumsends.updateMany({
+                where: {
+                    OR: [
+                        { status: 'SENT' },
+                        { status: 'READY_TO_CLAIM' }
+                    ],
+                    sourceTransactionHash: { not: null },
+                    destinationTransactionHash: { not: null }
+                },
+                data: {
+                    status: 'CLAIMED'
+                }
+            });
+
         } catch (error) {
             console.log("something went wrong while axios call", error);
         }
@@ -353,17 +401,15 @@ export default class TransactionCron {
             if (response && response.data && response.data.slot) {
                 let block = await this.bridgeApi.getBlockNumberBySlot(response.data.slot);
                 if (block && block.data && block.data.blockNumber) {
-                    await Transaction.updateMany(
-                        {
-                            status: TRANSACTION_STATUS.BRIDGED,
-                            sourceTransactionBlockNumber: { $lt: block.data.blockNumber },
-                            sourceChain: CHAIN.ETHEREUM,
-                            destinationChain: CHAIN.AVAIL,
+                    await prisma.ethereumsends.updateMany({
+                        where: {
+                            status: 'SENT',
+                            sourceBlockNumber: { lte: block.data.blockNumber }
                         },
-                        {
-                            status: TRANSACTION_STATUS.READY_TO_CLAIM
+                        data: {
+                            status: 'READY_TO_CLAIM'
                         }
-                    )
+                    });
                 }
             }
         } catch (error) {

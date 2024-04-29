@@ -1,36 +1,27 @@
-import { Transaction } from '../models/transactions.js';
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient();
 
 interface IGetAllTransaction {
-    sourceChain?: string;
-    destinationChain?: string;
+    sourceChain: string;
     page?: string;
     pageSize?: string;
     userAddress?: string;
     status?: string;
 }
 export default class TransactionService {
-    constructor() {
-
-    }
-
     async getAllTransactions(params: IGetAllTransaction) {
-        let { sourceChain, destinationChain, page, pageSize, status, userAddress } = params;
+        let { sourceChain, page, pageSize, status, userAddress } = params;
 
-        let condition = {};
-        if (sourceChain) {
-            condition = { ...condition, sourceChain };
-        }
-        if (destinationChain) {
-            condition = { ...condition, destinationChain };
-        }
+        let where = {};
+        where = { ...where, sourceChain };
         if (status) {
-            condition = { ...condition, status };
+            where = { ...where, status };
         }
 
         if (userAddress) {
-            condition = {
-                ...condition,
-                $or: [
+            where = {
+                ...where,
+                OR: [
                     { depositorAddress: userAddress },
                     { receiverAddress: userAddress },
                     { depositorAddress: userAddress.toLowerCase() },
@@ -50,11 +41,42 @@ export default class TransactionService {
         const offset = parseInt(page);
         const limit = parseInt(pageSize);
 
-        const totalCount = await Transaction.countDocuments(condition);
-        const transactions = await Transaction.find(
-            condition,
-            { __v: 0, _id: 0 }
-        ).skip(offset * limit).limit(limit).sort({ sourceTransactionBlockNumber: -1 });
+        const prisma_db = sourceChain === 'AVAIL' ? prisma.availsends : prisma.ethereumsends;
+
+        const totalCount = await prisma_db.count({
+            where
+        });
+
+        const transactions = await prisma_db.findMany({
+            where,
+            select: {
+                messageId: true,
+                status: true,
+                sourceTransactionHash: true,
+                sourceBlockNumber: true,
+                sourceBlockHash: true,
+                sourceTransactionIndex: true,
+                sourceTimestamp: true,
+                sourceTokenAddress: true,
+                destinationTransactionHash: true,
+                destinationBlockNumber: true,
+                destinationBlockHash: true,
+                destinationTransactionIndex: true,
+                destinationTimestamp: true,
+                destinationTokenAddress: true,
+                depositorAddress: true,
+                receiverAddress: true,
+                amount: true,
+                message: true,
+                dataType: true,
+            },
+            skip: offset * limit,
+            take: limit,
+            orderBy: {
+                sourceBlockNumber: 'desc'
+            }
+        });
+
         return {
             result: transactions,
             paginationData: {

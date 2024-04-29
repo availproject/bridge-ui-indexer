@@ -4,8 +4,7 @@ import fastify from 'fastify';
 
 type getTransactionsRequest = fastify.FastifyRequest<{
     Querystring: {
-        sourceChain?: string;
-        destinationChain?: string;
+        sourceChain: string;
         page?: string;
         pageSize?: string;
         userAddress?: string;

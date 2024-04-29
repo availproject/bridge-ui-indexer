@@ -21,6 +21,7 @@
   "dependencies": {
     "@fastify/cors": "^8.2.0",
     "@polkadot/keyring": "^12.6.2",
+    "@prisma/client": "^5.13.0",
     "abi-decoder": "^2.4.0",
     "abi-decoder-ts": "^3.0.1",
     "axios": "^0.21.1",
@@ -35,10 +36,7 @@
     "graphql-request": "^3.5.0",
     "helmet": "^4.6.0",
     "http": "^0.0.1-security",
-    "mongoose": "^5.13.2",
-    "node-cron": "^3.0.0",
-    "nodemon": "^3.1.0",
-    "web3": "^1.8.0-rc.0"
+    "node-cron": "^3.0.0"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
