@@ -2,8 +2,8 @@
   "network": "sepolia",
   "contracts": {
     "AvailBridge": {
-      "address": "0x1369a4c9391cf90d393b40faead521b0f7019dc5",
-      "startBlock": 5546000
+      "address": "0x967F7DdC4ec508462231849AE81eeaa68Ad01389",
+      "startBlock": 5667500
     }
   }
 }
