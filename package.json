@@ -10,7 +10,9 @@
     "build": "tsup",
     "start": "node --experimental-import-meta-resolve dist/index.js",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint --fix ./src/**/*.ts"
+    "lint:fix": "eslint --fix ./src/**/*.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
   },
   "pre-commit": [
     "lint"
@@ -22,8 +24,7 @@
     "@fastify/cors": "^8.2.0",
     "@polkadot/keyring": "^12.6.2",
     "@prisma/client": "^5.13.0",
-    "abi-decoder": "^2.4.0",
-    "abi-decoder-ts": "^3.0.1",
+    "abi-decoder-typescript": "^3.0.0",
     "axios": "^0.21.1",
     "bignumber.js": "^9.1.2",
     "body-parser": "^1.19.0",
@@ -36,7 +37,8 @@
     "graphql-request": "^3.5.0",
     "helmet": "^4.6.0",
     "http": "^0.0.1-security",
-    "node-cron": "^3.0.0"
+    "node-cron": "^3.0.0",
+    "prisma": "^5.13.0"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",

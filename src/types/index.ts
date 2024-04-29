@@ -68,3 +68,8 @@ export interface IABIDecodeMethod {
         type: string
     }[]
 }
+
+export interface IRetData {
+    name: string,
+    params: Array<any>
+}

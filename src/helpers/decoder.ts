@@ -1,8 +1,7 @@
-import abiDecoder, { DecodedMethod } from 'abi-decoder-ts';
-import { ABI } from 'abi-decoder-ts/cjs/types.js';
+import ABIDecoder from 'abi-decoder-typescript';
 import AbiCoder from "web3-eth-abi";
-
-const abiCoder = AbiCoder.default;
+import { IRetData } from '../types/index.js';
+const abiDecoder = new ABIDecoder.default();
 
 export default class Decoder {
 
@@ -15,7 +14,7 @@ export default class Decoder {
     return methodID.concat(input);
   }
 
-  decodeMethod(inputData: string): DecodedMethod | undefined {
+  decodeMethod(inputData: string): IRetData | undefined {
     try {
       let decodedData = null;
       try {
@@ -31,8 +30,8 @@ export default class Decoder {
   }
 
   getParsedTxDataFromAbiDecoder(
-    inputData: string, abi: ABI.Item[], name: string
-  ): { success: boolean, result?: DecodedMethod } {
+    inputData: string, abi: Array<unknown>, name: string
+  ): { success: boolean, result?: IRetData } {
     try {
       abiDecoder.addABI(abi);
       let decodedData = this.decodeMethod(inputData);
@@ -87,6 +86,6 @@ export default class Decoder {
     ];
 
     // Decode the function call data
-    return abiCoder.decodeParameters(inputs, `0x${inputData.slice(10)}`);
+    return (AbiCoder as any).decodeParameters(inputs, `0x${inputData.slice(10)}`);
   }
 }

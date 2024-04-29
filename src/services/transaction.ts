@@ -41,41 +41,75 @@ export default class TransactionService {
         const offset = parseInt(page);
         const limit = parseInt(pageSize);
 
-        const prisma_db = sourceChain === 'AVAIL' ? prisma.availsends : prisma.ethereumsends;
-
-        const totalCount = await prisma_db.count({
-            where
-        });
-
-        const transactions = await prisma_db.findMany({
-            where,
-            select: {
-                messageId: true,
-                status: true,
-                sourceTransactionHash: true,
-                sourceBlockNumber: true,
-                sourceBlockHash: true,
-                sourceTransactionIndex: true,
-                sourceTimestamp: true,
-                sourceTokenAddress: true,
-                destinationTransactionHash: true,
-                destinationBlockNumber: true,
-                destinationBlockHash: true,
-                destinationTransactionIndex: true,
-                destinationTimestamp: true,
-                destinationTokenAddress: true,
-                depositorAddress: true,
-                receiverAddress: true,
-                amount: true,
-                message: true,
-                dataType: true,
-            },
-            skip: offset * limit,
-            take: limit,
-            orderBy: {
-                sourceBlockNumber: 'desc'
-            }
-        });
+        let totalCount = null;
+        let transactions = null;
+        if (sourceChain === 'AVAIL') {
+            totalCount = await prisma.availsends.count({
+                where
+            });
+            transactions = await prisma.availsends.findMany({
+                where,
+                select: {
+                    messageId: true,
+                    status: true,
+                    sourceTransactionHash: true,
+                    sourceBlockNumber: true,
+                    sourceBlockHash: true,
+                    sourceTransactionIndex: true,
+                    sourceTimestamp: true,
+                    sourceTokenAddress: true,
+                    destinationTransactionHash: true,
+                    destinationBlockNumber: true,
+                    destinationBlockHash: true,
+                    destinationTransactionIndex: true,
+                    destinationTimestamp: true,
+                    destinationTokenAddress: true,
+                    depositorAddress: true,
+                    receiverAddress: true,
+                    amount: true,
+                    message: true,
+                    dataType: true,
+                },
+                skip: offset * limit,
+                take: limit,
+                orderBy: {
+                    sourceBlockNumber: 'desc'
+                }
+            });
+        } else {
+            totalCount = await prisma.ethereumsends.count({
+                where
+            });
+            transactions = await prisma.ethereumsends.findMany({
+                where,
+                select: {
+                    messageId: true,
+                    status: true,
+                    sourceTransactionHash: true,
+                    sourceBlockNumber: true,
+                    sourceBlockHash: true,
+                    sourceTransactionIndex: true,
+                    sourceTimestamp: true,
+                    sourceTokenAddress: true,
+                    destinationTransactionHash: true,
+                    destinationBlockNumber: true,
+                    destinationBlockHash: true,
+                    destinationTransactionIndex: true,
+                    destinationTimestamp: true,
+                    destinationTokenAddress: true,
+                    depositorAddress: true,
+                    receiverAddress: true,
+                    amount: true,
+                    message: true,
+                    dataType: true,
+                },
+                skip: offset * limit,
+                take: limit,
+                orderBy: {
+                    sourceBlockNumber: 'desc'
+                }
+            });
+        }
 
         return {
             result: transactions,

@@ -1,16 +1,13 @@
 import Decoder from '../helpers/decoder.js';
 import AvailBridgeAbi from '../abi/AvailBridge.js';
-import ABICoder from "web3-eth-abi";
+import AbiCoder from "web3-eth-abi";
 import { encodeAddress } from '@polkadot/keyring';
-import BN from "bignumber.js";
+import { BigNumber } from "bignumber.js";
 import AvailIndexer from './avail-indexer.js';
 import EthIndexer from './eth-indexer.js';
 import BridgeApi from './bridge-api.js';
 import { PrismaClient } from '@prisma/client'
-import { ABI } from 'abi-decoder-ts/cjs/types.js';
 
-const AbiCoder = ABICoder.default;
-const BigNumber = BN.default;
 const decoder = new Decoder();
 const prisma = new PrismaClient();
 
@@ -35,7 +32,7 @@ export default class TransactionCron {
             });
             let startBlockNumber = 0;
             if (latestTransaction) {
-                startBlockNumber = latestTransaction.sourceBlockNumber;
+                startBlockNumber = Number(latestTransaction.sourceBlockNumber);
             }
 
             let findMore = true;
@@ -60,17 +57,17 @@ export default class TransactionCron {
                         input,
                     } = transaction;
 
-                    const decodedData = decoder.getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi as ABI.Item[], 'sendAVAIL');
+                    const decodedData = decoder.getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi as Array<unknown>, 'sendAVAIL');
                     if (
                         decodedData.success && decodedData.result &&
                         new BigNumber(decodedData.result.params[1].value).gt(0)
                     ) {
                         await prisma.ethereumsends.upsert({
-                            where: { messageId: { messageId } },
+                            where: { messageId: BigInt(messageId) },
                             update: {
                                 sourceTransactionHash: transactionHash.toLowerCase(),
-                                sourceBlockNumber: block,
-                                sourceTransactionIndex: logIndex,
+                                sourceBlockNumber: BigInt(block),
+                                sourceTransactionIndex: BigInt(logIndex),
                                 sourceBlockHash: blockHash,
                                 sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                 depositorAddress: from.toLowerCase(),
@@ -80,10 +77,10 @@ export default class TransactionCron {
                                 status: 'SENT'
                             },
                             create: {
-                                messageId,
+                                messageId: BigInt(messageId),
                                 sourceTransactionHash: transactionHash.toLowerCase(),
-                                sourceBlockNumber: block,
-                                sourceTransactionIndex: logIndex,
+                                sourceBlockNumber: BigInt(block),
+                                sourceTransactionIndex: BigInt(logIndex),
                                 sourceBlockHash: blockHash,
                                 sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                 depositorAddress: from.toLowerCase(),
@@ -117,7 +114,7 @@ export default class TransactionCron {
             });
             let startBlockNumber = 0;
             if (latestTransaction) {
-                startBlockNumber = latestTransaction.destinationBlockNumber;
+                startBlockNumber = Number(latestTransaction.destinationBlockNumber);
             }
 
             let findMore = true;
@@ -145,15 +142,15 @@ export default class TransactionCron {
                     if (input && input.slice(0, 10).toLowerCase() === '0xa25a59cc') {
                         const decodedData = decoder.decodeReceiveAVAIL(input);
                         const data = decodedData[0].data;
-                        const params = AbiCoder.decodeParameters(["address", "uint256"], data);
+                        const params = (AbiCoder as any).decodeParameters(["address", "uint256"], data);
 
                         if (new BigNumber(params[1]).gt(0)) {
                             await prisma.availsends.upsert({
-                                where: { messageId: { messageId } },
+                                where: { messageId: BigInt(messageId) },
                                 update: {
                                     destinationTransactionHash: transactionHash.toLowerCase(),
-                                    destinationBlockNumber: block,
-                                    destinationTransactionIndex: logIndex,
+                                    destinationBlockNumber: BigInt(block),
+                                    destinationTransactionIndex: BigInt(logIndex),
                                     destinationTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                     destinationBlockHash: blockHash,
                                     depositorAddress: encodeAddress(from),
@@ -163,10 +160,10 @@ export default class TransactionCron {
                                     status: 'CLAIMED'
                                 },
                                 create: {
-                                    messageId,
+                                    messageId: BigInt(messageId),
                                     destinationTransactionHash: transactionHash.toLowerCase(),
-                                    destinationBlockNumber: block,
-                                    destinationTransactionIndex: logIndex,
+                                    destinationBlockNumber: BigInt(block),
+                                    destinationTransactionIndex: BigInt(logIndex),
                                     destinationTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                     destinationBlockHash: blockHash,
                                     depositorAddress: encodeAddress(from),
@@ -201,7 +198,7 @@ export default class TransactionCron {
             });
             let startBlockNumber = 0;
             if (latestTransaction) {
-                startBlockNumber = latestTransaction.sourceBlockNumber;
+                startBlockNumber = Number(latestTransaction.sourceBlockNumber);
             }
 
             let findMore = true;
@@ -225,10 +222,10 @@ export default class TransactionCron {
                             if (event && event[0]) {
                                 const data = event[0];
                                 await prisma.availsends.upsert({
-                                    where: { messageId: { messageId: data.argsValue[4] } },
+                                    where: { messageId: BigInt(data.argsValue[4]) },
                                     update: {
                                         sourceTransactionHash: transaction.txHash.toLowerCase(),
-                                        sourceBlockNumber: transaction.blockHeight,
+                                        sourceBlockNumber: BigInt(transaction.blockHeight),
                                         sourceTransactionIndex: transaction.extrinsicIndex,
                                         sourceTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0],
@@ -240,9 +237,9 @@ export default class TransactionCron {
                                         sourceBlockHash: data.block.hash
                                     },
                                     create: {
-                                        messageId: data.argsValue[4],
+                                        messageId: BigInt(data.argsValue[4]),
                                         sourceTransactionHash: transaction.txHash.toLowerCase(),
-                                        sourceBlockNumber: transaction.blockHeight,
+                                        sourceBlockNumber: BigInt(transaction.blockHeight),
                                         sourceTransactionIndex: transaction.extrinsicIndex,
                                         sourceTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0],
@@ -280,7 +277,7 @@ export default class TransactionCron {
             });
             let startBlockNumber = 0;
             if (latestTransaction) {
-                startBlockNumber = latestTransaction.destinationBlockNumber;
+                startBlockNumber = Number(latestTransaction.destinationBlockNumber);
             }
 
             let findMore = true;
@@ -303,31 +300,31 @@ export default class TransactionCron {
                             const event = await this.availIndexer.getEventFromExtrinsicId(transaction.id, "MessageExecuted")
                             if (event && event[0]) {
                                 const data = event[0];
-                                await prisma.transaction.upsert({
-                                    where: { messageId: { messageId: data.argsValue[2] } },
+                                await prisma.ethereumsends.upsert({
+                                    where: { messageId: BigInt(data.argsValue[2]) },
                                     update: {
                                         destinationTransactionHash: transaction.txHash.toLowerCase(),
-                                        destinationBlockNumber: transaction.blockHeight,
+                                        destinationBlockNumber: BigInt(transaction.blockHeight),
                                         destinationTransactionIndex: transaction.extrinsicIndex,
                                         destinationTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
                                         receiverAddress: encodeAddress(data.argsValue[1]),
                                         destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
-                                        amount: parseInt(value.message.fungibleToken.amount),
+                                        amount: value.message.fungibleToken.amount,
                                         dataType: 'ERC20',
                                         status: 'CLAIMED',
                                         destinationBlockHash: data.block.hash
                                     },
                                     create: {
-                                        messageId: data.argsValue[2],
+                                        messageId: BigInt(data.argsValue[2]),
                                         destinationTransactionHash: transaction.txHash.toLowerCase(),
-                                        destinationTransactionBlockNumber: transaction.blockHeight,
+                                        destinationBlockNumber: BigInt(transaction.blockHeight),
                                         destinationTransactionIndex: transaction.extrinsicIndex,
                                         destinationTimestamp: new Date(parseInt(transaction.timestamp) * 1000).toISOString(),
                                         depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
                                         receiverAddress: encodeAddress(data.argsValue[1]),
                                         destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
-                                        amount: parseInt(value.message.fungibleToken.amount),
+                                        amount: value.message.fungibleToken.amount,
                                         dataType: 'ERC20',
                                         status: 'CLAIMED',
                                         destinationBlockHash: data.block.hash
