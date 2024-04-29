@@ -2,14 +2,15 @@
   "name": "bridge-ui-indexer",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "exports": "./dist/",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint --ext .js --ignore-pattern ‘!.eslintrc.js’ . --fix"
+    "build": "tsup",
+    "start": "node --experimental-import-meta-resolve dist/index.js",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint --fix ./src/**/*.ts"
   },
   "pre-commit": [
     "lint"
@@ -18,26 +19,36 @@
   "author": "nitinmittal23",
   "license": "MIT",
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
+    "@fastify/cors": "^8.2.0",
     "@polkadot/keyring": "^12.6.2",
     "abi-decoder": "^2.4.0",
+    "abi-decoder-ts": "^3.0.1",
     "axios": "^0.21.1",
     "bignumber.js": "^9.1.2",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
-    "dotenv": "^10.0.0",
+    "dotenv": "^16.0.1",
     "esm": "^3.2.25",
     "express": "^4.17.1",
-    "fastify": "^4.26.2",
+    "fastify": "4.11.0",
     "graphql": "^15.5.1",
     "graphql-request": "^3.5.0",
     "helmet": "^4.6.0",
+    "http": "^0.0.1-security",
     "mongoose": "^5.13.2",
     "node-cron": "^3.0.0",
     "nodemon": "^3.1.0",
     "web3": "^1.8.0-rc.0"
   },
   "devDependencies": {
-    "eslint": "^8.19.0"
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "eslint": "^8.20.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "ts-jest": "^29.0.3",
+    "tsup": "^6.2.3",
+    "typescript": "^4.8.2"
   }
 }
