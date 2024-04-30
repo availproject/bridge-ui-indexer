@@ -1,4 +1,3 @@
-import { schedule } from 'node-cron';
 
 import TransactionController from "./controllers/transaction.js";
 import TransactionCron from "./services/transaction-cron.js";
@@ -83,9 +82,15 @@ async function startApi() {
   }
 };
 
+async function startFunction(func: Function, timeInterval: number) {
+  while (true) {
+    await func();
+    await new Promise(r => setTimeout(r, timeInterval));
+  }
+}
+
 // Initialization and Syncing Function
 async function startCron() {
-
   let transactionCron = new TransactionCron(
     new AvailIndexer(process.env.AVAIL_SUBGRAPH_URL as string),
     new EthIndexer(process.env.ETHEREUM_SUBGRAPH_URL as string),
@@ -93,21 +98,21 @@ async function startCron() {
   )
 
   try {
+    console.log("Initial Sync Started")
     await transactionCron.updateEthereumSend();
     await transactionCron.updateEthereumReceive();
     await transactionCron.updateSendOnAvail();
     await transactionCron.updateReceiveOnAvail();
     await transactionCron.updateAvlToEthToReadyToClaim();
     await transactionCron.updateEthToAvlToReadyToClaim();
-
     console.log("Initial Syncing completed.")
 
-    schedule('*/2 * * * *', transactionCron.updateEthereumSend.bind(transactionCron));
-    schedule('*/2 * * * *', transactionCron.updateEthereumReceive.bind(transactionCron));
-    schedule('*/2 * * * *', transactionCron.updateSendOnAvail.bind(transactionCron));
-    schedule('*/2 * * * *', transactionCron.updateReceiveOnAvail.bind(transactionCron));
-    schedule('*/2 * * * *', transactionCron.updateAvlToEthToReadyToClaim.bind(transactionCron));
-    schedule('*/2 * * * *', transactionCron.updateEthToAvlToReadyToClaim.bind(transactionCron));
+    startFunction(transactionCron.updateEthereumSend.bind(transactionCron), 120000)
+    startFunction(transactionCron.updateEthereumReceive.bind(transactionCron), 120000)
+    startFunction(transactionCron.updateSendOnAvail.bind(transactionCron), 120000)
+    startFunction(transactionCron.updateReceiveOnAvail.bind(transactionCron), 120000)
+    startFunction(transactionCron.updateAvlToEthToReadyToClaim.bind(transactionCron), 120000)
+    startFunction(transactionCron.updateEthToAvlToReadyToClaim.bind(transactionCron), 120000)
   } catch (error) {
     console.error('error in syncing All transactions: ', error);
   }
