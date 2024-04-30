@@ -69,6 +69,20 @@ query_params = {
 npm install
 ```
 
+## Database
+
+- This service uses postgres as DB. download postgres and run it.
+
+- Generate Prisma files
+```bash
+npm run prisma:generate
+```
+
+- Push to prisma
+```bash
+npm run prisma:push
+```
+
 ## Running
 
 - Start the server using 
