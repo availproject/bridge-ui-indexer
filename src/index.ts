@@ -5,6 +5,8 @@ import AvailIndexer from "./services/avail-indexer.js";
 import BridgeApi from "./services/bridge-api.js";
 import TransactionService from "./services/transaction.js";
 
+import logger from "./helpers/logger.js";
+
 import callGetAvlProofSchema from "./schema/callGetAvlProofSchema.js";
 import callGetEthProofSchema from "./schema/callGetEthProofSchema.js";
 import callGetTransactionsSchema from "./schema/callGetTransactionsSchema.js";
@@ -17,7 +19,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app: FastifyInstance<Server, IncomingMessage, ServerResponse> =
-  fastify.default();
+  fastify.default({
+    logger: logger,
+  });
 let bridgeApi: BridgeApi;
 
 async function startApi() {
@@ -129,7 +133,7 @@ async function startCron() {
       120000
     );
   } catch (error) {
-    console.error("error in syncing All transactions: ", error);
+    logger.error("error in syncing All transactions: ", error);
   }
 }
 

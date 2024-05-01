@@ -1,24 +1,25 @@
-import winston, { log } from "winston";
-import "winston-mongodb";
+import Pino from "pino";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const url = process.env.MONGO_CONNECTION || "mongodb://localhost:27017/mydb";
+const username = process.env.MONGO_USERNAME || "";
+const password = process.env.MONGO_PASSWORD || "";
 
-export const logger = winston.createLogger({
-  level: "info",
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.simple(),
-      level: "error",
-    }),
-  ],
+const pino = Pino.pino({
+  transport: {
+    target: "pino-mongodb",
+    options: {
+      uri: url,
+      database: "logs",
+      collection: "log-collection",
+      auth: {
+        username,
+        password,
+      },
+    },
+  },
 });
 
-logger.add(
-  new winston.transports.MongoDB({
-    db: url,
-    collection: "log",
-  })
-);
+export default pino;

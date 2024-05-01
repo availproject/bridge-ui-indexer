@@ -38,6 +38,8 @@
     "helmet": "^4.6.0",
     "http": "^0.0.1-security",
     "mongodb": "^6.5.0",
+    "pino": "^8.21.0",
+    "pino-mongodb": "^4.3.0",
     "prisma": "^5.13.0",
     "winston": "^3.13.0",
     "winston-mongodb": "^5.1.1"
