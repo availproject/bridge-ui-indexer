@@ -23,6 +23,7 @@ dataSources:
       eventHandlers:
         - event: MessageSent(indexed address,indexed bytes32,uint256)
           handler: handleMessageSent
+          receipt: true
         - event: MessageReceived(indexed bytes32,indexed address,uint256)
           handler: handleMessageReceived
       file: ./src/mappings/avail-bridge.ts
