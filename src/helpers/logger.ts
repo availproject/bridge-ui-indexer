@@ -3,17 +3,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const uri = process.env.MONGO_CONNECTION || "mongodb://127.0.0.1:27017/logs";
-const username = process.env.MONGO_USERNAME || "";
-const password = process.env.MONGO_PASSWORD || "";
-
 const pino = Pino.pino({
   transport: {
-    target: "pino-mongodb",
-    options: {
-      uri,
-      collection: "log-collection",
-    },
+    target: "pino-pretty",
   },
   formatters: {
     bindings: (bindings) => {
