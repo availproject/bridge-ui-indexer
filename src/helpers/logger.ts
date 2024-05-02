@@ -1,7 +1,4 @@
 import Pino from "pino";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const pino = Pino.pino({
   transport: {
