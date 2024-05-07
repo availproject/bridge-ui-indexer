@@ -1,12 +1,15 @@
-import { request, gql } from 'graphql-request';
-import { IAvailExtrinsic, IAvailEvent } from '../types/index.js';
-
+import { request, gql } from "graphql-request";
+import { IAvailExtrinsic, IAvailEvent } from "../types/index.js";
+import logger from "../helpers/logger.js";
 export default class AvailIndexer {
-    constructor(private subgraphUrl: string) { }
+  constructor(private subgraphUrl: string) {}
 
-    async getSendMessageTx(startBlockNumber: number, limit: number): Promise<IAvailExtrinsic[]> {
-        try {
-            const query = gql`query{
+  async getSendMessageTx(
+    startBlockNumber: number,
+    limit: number
+  ): Promise<IAvailExtrinsic[]> {
+    try {
+      const query = gql`query{
                     extrinsics(
                       filter: { 
                         call: { equalTo: "sendMessage" },
@@ -37,17 +40,20 @@ export default class AvailIndexer {
                       }
                     }
             }`;
-            const resp = await request(this.subgraphUrl, query);
-            return resp?.extrinsics?.nodes || [];
-        } catch (error) {
-            console.error(error);
-            throw error;
-        }
-    };
+      const resp = await request(this.subgraphUrl, query);
+      return resp?.extrinsics?.nodes || [];
+    } catch (error) {
+      logger.error(error);
+      throw error;
+    }
+  }
 
-    async getReceiveMessageTx(startBlockNumber: number, limit: number): Promise<IAvailExtrinsic[]> {
-        try {
-            const query = gql`query{
+  async getReceiveMessageTx(
+    startBlockNumber: number,
+    limit: number
+  ): Promise<IAvailExtrinsic[]> {
+    try {
+      const query = gql`query{
                     extrinsics(
                       filter: { 
                         call: { equalTo: "execute" },
@@ -78,17 +84,20 @@ export default class AvailIndexer {
                       }
                     }
             }`;
-            const resp = await request(this.subgraphUrl, query);
-            return resp?.extrinsics?.nodes || [];
-        } catch (error) {
-            console.error(error);
-            throw error;
-        }
-    };
+      const resp = await request(this.subgraphUrl, query);
+      return resp?.extrinsics?.nodes || [];
+    } catch (error) {
+      logger.error(error);
+      throw error;
+    }
+  }
 
-    async getEventFromExtrinsicId(extrinsicId: string, eventType: string): Promise<IAvailEvent[]> {
-        try {
-            const query = gql`query{
+  async getEventFromExtrinsicId(
+    extrinsicId: string,
+    eventType: string
+  ): Promise<IAvailEvent[]> {
+    try {
+      const query = gql`query{
                     events(
                       filter: { 
                         event: { equalTo: "${eventType}" },
@@ -113,11 +122,11 @@ export default class AvailIndexer {
                     }
             }`;
 
-            const resp = await request(this.subgraphUrl, query);
-            return resp?.events?.nodes || [];
-        } catch (error) {
-            console.error(error);
-            throw error;
-        }
-    };
+      const resp = await request(this.subgraphUrl, query);
+      return resp?.events?.nodes || [];
+    } catch (error) {
+      logger.error(error);
+      throw error;
+    }
+  }
 }

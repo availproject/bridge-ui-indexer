@@ -7,6 +7,7 @@ import EthIndexer from "./eth-indexer.js";
 import BridgeApi from "./bridge-api.js";
 import { PrismaClient } from "@prisma/client";
 import { decodeParameter, decodeParameters } from "web3-eth-abi";
+import logger from "../helpers/logger.js";
 
 const decoder = new Decoder();
 const prisma = new PrismaClient();
@@ -122,11 +123,9 @@ export default class TransactionCron {
           }
         }
       }
-
-      console.log("✅ Indexed upto block: ", startBlockNumber);
       return true;
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       return false;
     }
   }
@@ -211,7 +210,7 @@ export default class TransactionCron {
       }
       return true;
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       return false;
     }
   }
@@ -296,7 +295,7 @@ export default class TransactionCron {
       }
       return true;
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return false;
     }
   }
@@ -386,7 +385,7 @@ export default class TransactionCron {
       }
       return true;
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return false;
     }
   }
@@ -434,7 +433,7 @@ export default class TransactionCron {
         },
       });
     } catch (error) {
-      console.log("something went wrong while axios call", error);
+      logger.error("something went wrong while axios call", error);
     }
   }
 
@@ -459,7 +458,7 @@ export default class TransactionCron {
         }
       }
     } catch (error) {
-      console.log("something went wrong while axios call", error);
+      logger.error("something went wrong while axios call", error);
     }
   }
 }
