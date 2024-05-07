@@ -28,7 +28,8 @@ async function startApi() {
       bridgeApi
     )
     await app.register(cors, {
-      origin: "*"
+      origin: '*',
+      methods: ["GET", "POST"],
     });
 
     // default endpoint (exposing transactions)
@@ -94,7 +95,8 @@ async function startCron() {
   let transactionCron = new TransactionCron(
     new AvailIndexer(process.env.AVAIL_SUBGRAPH_URL as string),
     new EthIndexer(process.env.ETHEREUM_SUBGRAPH_URL as string),
-    bridgeApi
+    bridgeApi,
+    "0xb1C3Cb9b5e598d4E95a85870e7812B99f350982d"
   )
 
   try {

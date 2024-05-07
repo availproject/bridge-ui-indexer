@@ -9,6 +9,12 @@ export interface IEthSendMessage {
     blockHash: string,
     timestamp: string,
     input: string,
+    logs: {
+        logIndex: string,
+        topics: string[],
+        logData: string,
+        address: string,
+    }[]
 }
 
 export interface IEthReceiveMessage {

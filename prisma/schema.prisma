@@ -30,7 +30,7 @@ model availsends {
   destinationTokenAddress String? @db.VarChar(66)
   depositorAddress String @db.VarChar(66)
   receiverAddress String @db.VarChar(66)
-  amount Decimal?
+  amount String?
   message String?
   dataType String
 }
@@ -52,7 +52,7 @@ model ethereumsends {
   destinationTokenAddress String? @db.VarChar(66)
   depositorAddress String @db.VarChar(66)
   receiverAddress String @db.VarChar(66)
-  amount Decimal?
+  amount String?
   message String?
   dataType String
 }

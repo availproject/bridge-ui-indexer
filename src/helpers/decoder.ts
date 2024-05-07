@@ -1,5 +1,5 @@
 import ABIDecoder from 'abi-decoder-typescript';
-import AbiCoder from "web3-eth-abi";
+import { decodeParameters } from "web3-eth-abi";
 import { IRetData } from '../types/index.js';
 const abiDecoder = new ABIDecoder.default();
 
@@ -86,6 +86,6 @@ export default class Decoder {
     ];
 
     // Decode the function call data
-    return (AbiCoder as any).decodeParameters(inputs, `0x${inputData.slice(10)}`);
+    return decodeParameters(inputs, `0x${inputData.slice(10)}`);
   }
 }

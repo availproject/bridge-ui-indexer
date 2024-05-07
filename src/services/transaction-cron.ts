@@ -1,21 +1,23 @@
 import Decoder from '../helpers/decoder.js';
 import AvailBridgeAbi from '../abi/AvailBridge.js';
-import AbiCoder from "web3-eth-abi";
 import { encodeAddress } from '@polkadot/keyring';
 import { BigNumber } from "bignumber.js";
 import AvailIndexer from './avail-indexer.js';
 import EthIndexer from './eth-indexer.js';
 import BridgeApi from './bridge-api.js';
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
+import { decodeParameter, decodeParameters } from "web3-eth-abi";
 
 const decoder = new Decoder();
 const prisma = new PrismaClient();
+
 
 export default class TransactionCron {
     constructor(
         private availIndexer: AvailIndexer,
         private ethIndexer: EthIndexer,
-        private bridgeApi: BridgeApi
+        private bridgeApi: BridgeApi,
+        private availContractAddress: string,
     ) { }
 
     async updateEthereumSend(): Promise<boolean> {
@@ -55,12 +57,22 @@ export default class TransactionCron {
                         blockHash,
                         timestamp,
                         input,
+                        logs
                     } = transaction;
+
+                    const transferLog = logs.find(log => {
+                        return log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
+                            log.address.toLowerCase() === this.availContractAddress.toLowerCase() &&
+                            BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
+                            (decodeParameter("address", log.topics[1]) as string).toLowerCase() === from &&
+                            decodeParameter("address", log.topics[2]) as string === "0x0000000000000000000000000000000000000000"
+                    }
+                    );
 
                     const decodedData = decoder.getParsedTxDataFromAbiDecoder(input, AvailBridgeAbi as Array<unknown>, 'sendAVAIL');
                     if (
-                        decodedData.success && decodedData.result &&
-                        new BigNumber(decodedData.result.params[1].value).gt(0)
+                        (decodedData.success && decodedData.result &&
+                            new BigNumber(decodedData.result.params[1].value).gt(0)) || transferLog
                     ) {
                         await prisma.ethereumsends.upsert({
                             where: { messageId: BigInt(messageId) },
@@ -72,7 +84,7 @@ export default class TransactionCron {
                                 sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                 depositorAddress: from.toLowerCase(),
                                 receiverAddress: encodeAddress(to),
-                                amount: decodedData.result.params[1].value,
+                                amount: transferLog ? (decodeParameter("uint256", transferLog.logData) as BigInt).toString() : decodedData.result!.params[1].value,
                                 dataType: 'ERC20',
                                 status: 'SENT'
                             },
@@ -85,7 +97,7 @@ export default class TransactionCron {
                                 sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
                                 depositorAddress: from.toLowerCase(),
                                 receiverAddress: encodeAddress(to),
-                                amount: decodedData.result.params[1].value,
+                                amount: transferLog ? (decodeParameter("uint256", transferLog.logData) as BigInt).toString() : decodedData.result!.params[1].value,
                                 dataType: 'ERC20',
                                 status: 'SENT'
                             }
@@ -93,6 +105,8 @@ export default class TransactionCron {
                     }
                 }
             }
+
+            console.log("✅ Indexed upto block: ", startBlockNumber)
             return true;
         } catch (error) {
             console.log(error)
@@ -142,9 +156,9 @@ export default class TransactionCron {
                     if (input && input.slice(0, 10).toLowerCase() === '0xa25a59cc') {
                         const decodedData = decoder.decodeReceiveAVAIL(input);
                         const data = decodedData[0].data;
-                        const params = (AbiCoder as any).decodeParameters(["address", "uint256"], data);
+                        const params = decodeParameters(["address", "uint256"], data);
 
-                        if (new BigNumber(params[1]).gt(0)) {
+                        if (new BigNumber(params[1] as string).gt(0)) {
                             await prisma.availsends.upsert({
                                 where: { messageId: BigInt(messageId) },
                                 update: {
@@ -155,7 +169,7 @@ export default class TransactionCron {
                                     destinationBlockHash: blockHash,
                                     depositorAddress: encodeAddress(from),
                                     receiverAddress: to.toLowerCase(),
-                                    amount: params[1].toString(),
+                                    amount: (params[1] as string).toString(),
                                     dataType: 'ERC20',
                                     status: 'CLAIMED'
                                 },
@@ -168,7 +182,7 @@ export default class TransactionCron {
                                     destinationBlockHash: blockHash,
                                     depositorAddress: encodeAddress(from),
                                     receiverAddress: to.toLowerCase(),
-                                    amount: params[1].toString(),
+                                    amount: (params[1] as string).toString(),
                                     dataType: 'ERC20',
                                     status: 'CLAIMED'
                                 }
@@ -231,7 +245,7 @@ export default class TransactionCron {
                                         depositorAddress: data.argsValue[0],
                                         receiverAddress: transaction.argsValue[1].slice(0, 42).toLowerCase(),
                                         sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
-                                        amount: parseInt(value.fungibleToken.amount, 16),
+                                        amount: BigInt(value.fungibleToken.amount).toString(),
                                         dataType: 'ERC20',
                                         status: 'BRIDGED',
                                         sourceBlockHash: data.block.hash
@@ -245,7 +259,7 @@ export default class TransactionCron {
                                         depositorAddress: data.argsValue[0],
                                         receiverAddress: transaction.argsValue[1].slice(0, 42).toLowerCase(),
                                         sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
-                                        amount: parseInt(value.fungibleToken.amount, 16),
+                                        amount: BigInt(value.fungibleToken.amount).toString(),
                                         dataType: 'ERC20',
                                         status: 'BRIDGED',
                                         sourceBlockHash: data.block.hash
@@ -310,7 +324,7 @@ export default class TransactionCron {
                                         depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
                                         receiverAddress: encodeAddress(data.argsValue[1]),
                                         destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
-                                        amount: value.message.fungibleToken.amount,
+                                        amount: new BigNumber(value.message.fungibleToken.amount, 16).toString(),
                                         dataType: 'ERC20',
                                         status: 'CLAIMED',
                                         destinationBlockHash: data.block.hash
@@ -324,7 +338,7 @@ export default class TransactionCron {
                                         depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
                                         receiverAddress: encodeAddress(data.argsValue[1]),
                                         destinationTokenAddress: value.message.fungibleToken.assetId.toLowerCase(),
-                                        amount: value.message.fungibleToken.amount,
+                                        amount: new BigNumber(value.message.fungibleToken.amount, 16).toString(),
                                         dataType: 'ERC20',
                                         status: 'CLAIMED',
                                         destinationBlockHash: data.block.hash

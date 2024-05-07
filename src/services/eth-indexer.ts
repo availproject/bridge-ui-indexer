@@ -20,6 +20,12 @@ export default class EthIndexer {
                     blockHash,
                     timestamp,
                     input,
+                    logs {
+                        logData
+                        topics
+                        address
+                        logIndex
+                    }
               }
             }`;
             const resp = await request(this.subgraphUrl, query);

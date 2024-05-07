@@ -1,6 +1,6 @@
-import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
+import { Address, BigInt, Bytes, ethereum } from '@graphprotocol/graph-ts'
 import { MessageSent, MessageReceived } from '../../generated/AvailBridge/AvailBridge'
-import { SendMessage, ReceiveMessage } from '../../generated/schema'
+import { SendMessage, ReceiveMessage, LogObject } from '../../generated/schema'
 
 export function handleMessageSent(event: MessageSent): void {
   let id = 'message-sent-' + event.params.messageId.toString()
@@ -9,18 +9,23 @@ export function handleMessageSent(event: MessageSent): void {
   if (entity == null) {
     entity = new SendMessage(id)
   }
-  const transferEvents = event.receipt.logs.filter((log) => log.logIndex == event.logIndex.plus(new BigInt(1)));
 
-  if (transferEvents.length) {
-    const transferEvent = transferEvents[0];
-    const availAddress = event.address == Address.fromHexString("0x967F7DdC4ec508462231849AE81eeaa68Ad01389") ?
-      Address.fromHexString("0xb1C3Cb9b5e598d4E95a85870e7812B99f350982d") :
-      //TODO: Change below to actual Avail address
-      Address.fromHexString("0xb1C3Cb9b5e598d4E95a85870e7812B99f350982d");
+  if (event.receipt !== null) {
+    for (let i = 0; i < (event.receipt as ethereum.TransactionReceipt).logs.length; i++) {
+      const log = (event.receipt as ethereum.TransactionReceipt).logs[i];
+      const logId = log.blockHash.toHexString() + log.logIndex.toString();
+      let logEntity = LogObject.load(id)
+      if (logEntity == null) {
+        logEntity = new LogObject(logId)
+      }
 
+      logEntity.address = log.address;
+      logEntity.sendMessage = entity.id;
+      logEntity.topics = log.topics;
+      logEntity.logIndex = log.logIndex;
+      logEntity.logData = log.data;
 
-    if (transferEvent.address == availAddress && transferEvent.topics[1] == event.params.from && transferEvent.topics[2] == Bytes.fromHexString("0x0000000000000000000000000000000000000000")) {
-      entity.amount = BigInt.fromByteArray(transferEvent.data);
+      logEntity.save();
     }
   }
 
@@ -33,7 +38,6 @@ export function handleMessageSent(event: MessageSent): void {
   entity.timestamp = event.block.timestamp
   entity.input = event.transaction.input
   entity.transactionHash = event.transaction.hash
-
   // save entity
   entity.save()
 }
