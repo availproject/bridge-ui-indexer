@@ -5,9 +5,11 @@ import { BigNumber } from "bignumber.js";
 import AvailIndexer from "./avail-indexer.js";
 import EthIndexer from "./eth-indexer.js";
 import BridgeApi from "./bridge-api.js";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
+
 import { decodeParameter, decodeParameters } from "web3-eth-abi";
 import logger from "../helpers/logger.js";
+import { IEthReceiveMessage, IEthSendMessage } from "../types/index.js";
 
 const decoder = new Decoder();
 const prisma = new PrismaClient();
@@ -20,22 +22,10 @@ export default class TransactionCron {
     private availContractAddress: string
   ) {}
 
-  async updateEthereumSend(): Promise<boolean> {
+  async updateEthereumSend(): Promise<void> {
     try {
       const limit = 1000;
-      const latestTransaction = await prisma.ethereumsends.findFirst({
-        where: {
-          sourceTransactionHash: { not: null },
-        },
-        orderBy: {
-          sourceBlockNumber: "desc",
-        },
-        take: 1,
-      });
-      let startBlockNumber = 0;
-      if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.sourceBlockNumber);
-      }
+      let startBlockNumber = await this.getLatestProcessedBlockNumber();
 
       let findMore = true;
       while (findMore) {
@@ -51,82 +41,23 @@ export default class TransactionCron {
           findMore = false;
         }
 
-        for (const transaction of sendMessages) {
-          const {
-            from,
-            to,
-            messageId,
-            logIndex,
-            transactionHash,
-            block,
-            blockHash,
-            timestamp,
-            input,
-            logs,
-          } = transaction;
+        const blockToTransactionMapping =
+          this.groupTransactionsByBlock(sendMessages);
+        const blocks = Object.keys(blockToTransactionMapping)
+          .map(Number)
+          .sort((a, b) => a - b);
 
-          const transferLog = logs.find((log) => {
-            return (
-              log.topics[0] ===
-                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
-              log.address.toLowerCase() ===
-                this.availContractAddress.toLowerCase() &&
-              BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
-              (
-                decodeParameter("address", log.topics[1]) as string
-              ).toLowerCase() === from &&
-              (decodeParameter("address", log.topics[2]) as string) ===
-                "0x0000000000000000000000000000000000000000"
-            );
-          });
-
-          const decodedData = decoder.getParsedTxDataFromAbiDecoder(
-            input,
-            AvailBridgeAbi as Array<unknown>,
-            "sendAVAIL"
+        for (const block of blocks) {
+          const transactions = blockToTransactionMapping[block];
+          await this.processTransactionsInBlockEthereumSends(
+            transactions,
+            block
           );
-          if (
-            (decodedData.success &&
-              decodedData.result &&
-              new BigNumber(decodedData.result.params[1].value).gt(0)) ||
-            transferLog
-          ) {
-            const schemaObj = () => {
-              return {
-                sourceTransactionHash: transactionHash.toLowerCase(),
-                sourceBlockNumber: BigInt(block),
-                sourceTransactionIndex: BigInt(logIndex),
-                sourceBlockHash: blockHash,
-                sourceTimestamp: new Date(
-                  parseInt(timestamp) * 1000
-                ).toISOString(),
-                depositorAddress: from.toLowerCase(),
-                receiverAddress: encodeAddress(to),
-                amount: transferLog
-                  ? (
-                      decodeParameter("uint256", transferLog.logData) as BigInt
-                    ).toString()
-                  : decodedData.result!.params[1].value,
-                dataType: "ERC20",
-                status: "SENT",
-              };
-            };
-
-            await prisma.ethereumsends.upsert({
-              where: { messageId: BigInt(messageId) },
-              update: { ...schemaObj() },
-              create: {
-                messageId: BigInt(messageId),
-                ...schemaObj(),
-              },
-            });
-          }
         }
       }
-      return true;
     } catch (error) {
       logger.error(error);
-      return false;
+      throw error;
     }
   }
 
@@ -161,51 +92,17 @@ export default class TransactionCron {
           findMore = false;
         }
 
+        const blockToTransactionMapping =
+          this.groupTransactionsByBlock(receiveMessages);
+        const blocks = Object.keys(blockToTransactionMapping)
+          .map(Number)
+          .sort((a, b) => a - b);
+
+        for (const block of blocks) {
+          const transactions = blockToTransactionMapping[block];
+          this.processTransactionsInBlockEthereumReceive(transactions, block);
+        }
         for (const transaction of receiveMessages) {
-          const {
-            from,
-            to,
-            messageId,
-            logIndex,
-            transactionHash,
-            block,
-            blockHash,
-            timestamp,
-            input,
-          } = transaction;
-
-          if (input && input.slice(0, 10).toLowerCase() === "0xa25a59cc") {
-            const decodedData = decoder.decodeReceiveAVAIL(input);
-            const data = decodedData[0].data;
-            const params = decodeParameters(["address", "uint256"], data);
-
-            if (new BigNumber(params[1] as string).gt(0)) {
-              const updateObj = () => {
-                return {
-                  destinationTransactionHash: transactionHash.toLowerCase(),
-                  destinationBlockNumber: BigInt(block),
-                  destinationTransactionIndex: BigInt(logIndex),
-                  destinationTimestamp: new Date(
-                    parseInt(timestamp) * 1000
-                  ).toISOString(),
-                  destinationBlockHash: blockHash,
-                  depositorAddress: encodeAddress(from),
-                  receiverAddress: to.toLowerCase(),
-                  amount: (params[1] as string).toString(),
-                  dataType: "ERC20",
-                  status: "CLAIMED",
-                };
-              };
-              await prisma.availsends.upsert({
-                where: { messageId: BigInt(messageId) },
-                update: { ...updateObj() },
-                create: {
-                  messageId: BigInt(messageId),
-                  ...updateObj(),
-                },
-              });
-            }
-          }
         }
       }
       return true;
@@ -297,6 +194,229 @@ export default class TransactionCron {
     } catch (error) {
       logger.error(error);
       return false;
+    }
+  }
+
+  private async getLatestProcessedBlockNumber(): Promise<number> {
+    const latestTransaction = await prisma.ethereumsends.findFirst({
+      where: {
+        sourceTransactionHash: { not: null },
+      },
+      orderBy: {
+        sourceBlockNumber: "desc",
+      },
+      take: 1,
+    });
+    return latestTransaction ? Number(latestTransaction.sourceBlockNumber) : 0;
+  }
+
+  private groupTransactionsByBlock<
+    T extends IEthSendMessage | IEthReceiveMessage
+  >(transactions: T[]): { [block: string]: T[] } {
+    return transactions.reduce(
+      (acc: { [block: string]: T[] }, transaction: T) => {
+        const { block } = transaction;
+        if (!acc[block]) {
+          acc[block] = [];
+        }
+        acc[block].push(transaction);
+        return acc;
+      },
+      {}
+    );
+  }
+  private async processTransactionsInBlockEthereumSends(
+    transactions: IEthSendMessage[],
+    block: number
+  ) {
+    const operations = [];
+
+    for (const transaction of transactions) {
+      const operation = this.createOperationForEthereumSends(
+        transaction,
+        block
+      );
+      if (operation) {
+        operations.push(operation);
+      }
+    }
+
+    try {
+      await prisma.$transaction(operations);
+      console.log("All operations for ethereum sends completed successfully");
+    } catch (error) {
+      console.error("An error occurred during the transaction:", error);
+      throw error;
+    }
+  }
+
+  private async processTransactionsInBlockEthereumReceive(
+    transactions: IEthReceiveMessage[],
+    block: number
+  ) {
+    const operations = [];
+
+    for (const transaction of transactions) {
+      const operation = this.createOperationForEthereumReceive(
+        transaction,
+        block
+      );
+      if (operation) {
+        operations.push(operation);
+      }
+    }
+
+    try {
+      await prisma.$transaction(operations);
+      console.log("All operations completed successfully");
+    } catch (error) {
+      console.error("An error occurred during the transaction:", error);
+      throw error;
+    }
+  }
+
+  private async processTransactionsInBlockUpdatesSendOnAvail(
+    transactions: IEthReceiveMessage[],
+    block: number
+  ) {
+    const operations = [];
+
+    for (const transaction of transactions) {
+      const operation = this.createOperationForEthereumReceive(
+        transaction,
+        block
+      );
+      if (operation) {
+        operations.push(operation);
+      }
+    }
+
+    try {
+      await prisma.$transaction(operations);
+      console.log("All operations completed successfully");
+    } catch (error) {
+      console.error("An error occurred during the transaction:", error);
+      throw error;
+    }
+  }
+
+  private createOperationForEthereumSends(
+    transaction: IEthSendMessage,
+    block: number
+  ): any {
+    const {
+      from,
+      to,
+      messageId,
+      logIndex,
+      transactionHash,
+      blockHash,
+      timestamp,
+      input,
+      logs,
+    } = transaction;
+
+    const transferLog = logs.find((log) => {
+      return (
+        log.topics[0] ===
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
+        log.address.toLowerCase() === this.availContractAddress.toLowerCase() &&
+        BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
+        (decodeParameter("address", log.topics[1]) as string).toLowerCase() ===
+          from &&
+        (decodeParameter("address", log.topics[2]) as string) ===
+          "0x0000000000000000000000000000000000000000"
+      );
+    });
+
+    const decodedData = decoder.getParsedTxDataFromAbiDecoder(
+      input,
+      AvailBridgeAbi as Array<unknown>,
+      "sendAVAIL"
+    );
+    if (
+      (decodedData.success &&
+        decodedData.result &&
+        new BigNumber(decodedData.result.params[1].value).gt(0)) ||
+      transferLog
+    ) {
+      const schemaObj = {
+        sourceTransactionHash: transactionHash.toLowerCase(),
+        sourceBlockNumber: BigInt(block),
+        sourceTransactionIndex: BigInt(logIndex),
+        sourceBlockHash: blockHash,
+        sourceTimestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
+        depositorAddress: from.toLowerCase(),
+        receiverAddress: encodeAddress(to),
+        amount: transferLog
+          ? (
+              decodeParameter("uint256", transferLog.logData) as BigInt
+            ).toString()
+          : decodedData.result!.params[1].value,
+        dataType: "ERC20",
+        status: "SENT",
+      };
+
+      return prisma.ethereumsends.upsert({
+        where: { messageId: BigInt(messageId) },
+        update: schemaObj,
+        create: {
+          messageId: BigInt(messageId),
+          ...schemaObj,
+        },
+      });
+    }
+
+    return null;
+  }
+
+  private createOperationForEthereumReceive(
+    transaction: IEthReceiveMessage,
+    block: number
+  ): any {
+    const {
+      from,
+      to,
+      messageId,
+      logIndex,
+      transactionHash,
+      blockHash,
+      timestamp,
+      input,
+    } = transaction;
+
+    if (input && input.slice(0, 10).toLowerCase() === "0xa25a59cc") {
+      const decodedData = decoder.decodeReceiveAVAIL(input);
+      const data = decodedData[0].data;
+      const params = decodeParameters(["address", "uint256"], data);
+
+      if (new BigNumber(params[1] as string).gt(0)) {
+        const updateObj = () => {
+          return {
+            destinationTransactionHash: transactionHash.toLowerCase(),
+            destinationBlockNumber: BigInt(block),
+            destinationTransactionIndex: BigInt(logIndex),
+            destinationTimestamp: new Date(
+              parseInt(timestamp) * 1000
+            ).toISOString(),
+            destinationBlockHash: blockHash,
+            depositorAddress: encodeAddress(from),
+            receiverAddress: to.toLowerCase(),
+            amount: (params[1] as string).toString(),
+            dataType: "ERC20",
+            status: "CLAIMED",
+          };
+        };
+        return prisma.availsends.upsert({
+          where: { messageId: BigInt(messageId) },
+          update: { ...updateObj() },
+          create: {
+            messageId: BigInt(messageId),
+            ...updateObj(),
+          },
+        });
+      }
+      return null;
     }
   }
 

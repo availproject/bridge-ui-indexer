@@ -12,7 +12,8 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint --fix ./src/**/*.ts",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "dev": "nodemon --exec node --loader ts-node/esm src/index.ts"
   },
   "pre-commit": [
     "lint"
@@ -37,8 +38,10 @@
     "graphql-request": "^3.5.0",
     "helmet": "^4.6.0",
     "http": "^0.0.1-security",
+    "nodemon": "^3.1.0",
     "pino": "^9.0.0",
     "prisma": "^5.13.0",
+    "ts-node-dev": "^2.0.0",
     "web3-eth-abi": "^4.2.1"
   },
   "devDependencies": {

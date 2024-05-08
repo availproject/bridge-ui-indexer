@@ -31,6 +31,7 @@ export default class EthIndexer {
                     }
               }
             }`;
+
       const resp = await request(this.subgraphUrl, query);
       return resp?.sendMessages || [];
     } catch (error) {
