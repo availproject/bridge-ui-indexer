@@ -9,7 +9,12 @@ import { PrismaClient, Prisma } from "@prisma/client";
 
 import { decodeParameter, decodeParameters } from "web3-eth-abi";
 import logger from "../helpers/logger.js";
-import { IEthReceiveMessage, IEthSendMessage } from "../types/index.js";
+import {
+  IAvailEvent,
+  IAvailExtrinsic,
+  IEthReceiveMessage,
+  IEthSendMessage,
+} from "../types/index.js";
 
 const decoder = new Decoder();
 const prisma = new PrismaClient();
@@ -102,8 +107,6 @@ export default class TransactionCron {
           const transactions = blockToTransactionMapping[block];
           this.processTransactionsInBlockEthereumReceive(transactions, block);
         }
-        for (const transaction of receiveMessages) {
-        }
       }
       return true;
     } catch (error) {
@@ -143,51 +146,15 @@ export default class TransactionCron {
           findMore = false;
         }
 
-        for (const transaction of sendMessages) {
-          if (transaction.argsValue) {
-            const value = JSON.parse(transaction.argsValue[0]);
-            if (
-              value &&
-              value.fungibleToken &&
-              new BigNumber(value.fungibleToken.amount, 16).gt(0)
-            ) {
-              const event = await this.availIndexer.getEventFromExtrinsicId(
-                transaction.id,
-                "MessageSubmitted"
-              );
-              if (event && event[0]) {
-                const sourceObj = () => {
-                  return {
-                    sourceTransactionHash: transaction.txHash.toLowerCase(),
-                    sourceBlockNumber: BigInt(transaction.blockHeight),
-                    sourceTransactionIndex: transaction.extrinsicIndex,
-                    sourceTimestamp: new Date(
-                      parseInt(transaction.timestamp) * 1000
-                    ).toISOString(),
-                    depositorAddress: data.argsValue[0],
-                    receiverAddress: transaction.argsValue[1]
-                      .slice(0, 42)
-                      .toLowerCase(),
-                    sourceTokenAddress:
-                      value.fungibleToken.assetId.toLowerCase(),
-                    amount: BigInt(value.fungibleToken.amount).toString(),
-                    dataType: "ERC20",
-                    status: "BRIDGED",
-                    sourceBlockHash: data.block.hash,
-                  };
-                };
-                const data = event[0];
-                await prisma.availsends.upsert({
-                  where: { messageId: BigInt(data.argsValue[4]) },
-                  update: { ...sourceObj() },
-                  create: {
-                    messageId: BigInt(data.argsValue[4]),
-                    ...sourceObj(),
-                  },
-                });
-              }
-            }
-          }
+        const blockToTransactionMapping =
+          this.groupTransactionsByBlock(sendMessages);
+        const blocks = Object.keys(blockToTransactionMapping)
+          .map(Number)
+          .sort((a, b) => a - b);
+
+        for (const block of blocks) {
+          const transactions = blockToTransactionMapping[block];
+          this.processTransactionsInAvailSends(transactions, block);
         }
       }
       return true;
@@ -197,6 +164,126 @@ export default class TransactionCron {
     }
   }
 
+  async updateReceiveOnAvail(): Promise<boolean> {
+    try {
+      const limit = 500;
+      const latestTransaction = await prisma.ethereumsends.findFirst({
+        where: {
+          destinationTransactionHash: { not: null },
+        },
+        orderBy: {
+          destinationBlockNumber: "desc",
+        },
+        take: 1,
+      });
+      let startBlockNumber = 0;
+      if (latestTransaction) {
+        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
+      }
+
+      let findMore = true;
+      while (findMore) {
+        const receiveMessage = await this.availIndexer.getReceiveMessageTx(
+          startBlockNumber,
+          limit
+        );
+        if (receiveMessage && receiveMessage.length === limit) {
+          startBlockNumber = parseInt(
+            receiveMessage[receiveMessage.length - 1].blockHeight
+          );
+        } else {
+          findMore = false;
+        }
+
+        const blockToTransactionMapping =
+          this.groupTransactionsByBlock(receiveMessage);
+        const blocks = Object.keys(blockToTransactionMapping)
+          .map(Number)
+          .sort((a, b) => a - b);
+
+        for (const block of blocks) {
+          const transactions = blockToTransactionMapping[block];
+          this.processTransactionsInAvailReceive(transactions, block);
+        }
+      }
+      return true;
+    } catch (error) {
+      logger.error(error);
+      return false;
+    }
+  }
+
+  async updateAvlToEthToReadyToClaim(): Promise<void> {
+    try {
+      let response = await this.bridgeApi.getAvailLatestHeadOnEthereum();
+
+      if (
+        response &&
+        response.data &&
+        response.data.data &&
+        response.data.data.end
+      ) {
+        await prisma.availsends.updateMany({
+          where: {
+            status: "SENT",
+            sourceBlockNumber: { lte: response.data.data.end },
+          },
+          data: {
+            status: "READY_TO_CLAIM",
+          },
+        });
+      }
+
+      await prisma.availsends.updateMany({
+        where: {
+          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
+          sourceTransactionHash: { not: null },
+          destinationTransactionHash: { not: null },
+        },
+        data: {
+          status: "CLAIMED",
+        },
+      });
+
+      await prisma.ethereumsends.updateMany({
+        where: {
+          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
+          sourceTransactionHash: { not: null },
+          destinationTransactionHash: { not: null },
+        },
+        data: {
+          status: "CLAIMED",
+        },
+      });
+    } catch (error) {
+      logger.error("something went wrong while axios call", error);
+    }
+  }
+
+  async updateEthToAvlToReadyToClaim(): Promise<void> {
+    try {
+      let response = await this.bridgeApi.getEthLatestHeadOnAvail();
+
+      if (response && response.data && response.data.slot) {
+        let block = await this.bridgeApi.getBlockNumberBySlot(
+          response.data.slot
+        );
+        if (block && block.data && block.data.blockNumber) {
+          await prisma.ethereumsends.updateMany({
+            where: {
+              status: "SENT",
+              sourceBlockNumber: { lte: block.data.blockNumber },
+            },
+            data: {
+              status: "READY_TO_CLAIM",
+            },
+          });
+        }
+      }
+    } catch (error) {
+      logger.error("something went wrong while axios call", error);
+    }
+  }
   private async getLatestProcessedBlockNumber(): Promise<number> {
     const latestTransaction = await prisma.ethereumsends.findFirst({
       where: {
@@ -211,11 +298,17 @@ export default class TransactionCron {
   }
 
   private groupTransactionsByBlock<
-    T extends IEthSendMessage | IEthReceiveMessage
+    T extends IEthSendMessage | IEthReceiveMessage | IAvailExtrinsic
   >(transactions: T[]): { [block: string]: T[] } {
     return transactions.reduce(
       (acc: { [block: string]: T[] }, transaction: T) => {
-        const { block } = transaction;
+        const block =
+          "block" in transaction
+            ? transaction.block
+            : "blockHeight" in transaction
+            ? transaction.blockHeight.toString()
+            : "";
+
         if (!acc[block]) {
           acc[block] = [];
         }
@@ -266,38 +359,76 @@ export default class TransactionCron {
       }
     }
 
-    try {
-      await prisma.$transaction(operations);
-      console.log("All operations completed successfully");
-    } catch (error) {
-      console.error("An error occurred during the transaction:", error);
-      throw error;
-    }
+    this.executePrismaTx(operations);
   }
 
-  private async processTransactionsInBlockUpdatesSendOnAvail(
-    transactions: IEthReceiveMessage[],
+  private async processTransactionsInAvailSends(
+    transactions: IAvailExtrinsic[],
     block: number
   ) {
     const operations = [];
 
     for (const transaction of transactions) {
-      const operation = this.createOperationForEthereumReceive(
-        transaction,
-        block
-      );
+      let operation;
+      if (transaction.argsValue) {
+        const value = JSON.parse(transaction.argsValue[0]);
+        if (
+          value &&
+          value.fungibleToken &&
+          new BigNumber(value.fungibleToken.amount, 16).gt(0)
+        ) {
+          const event = await this.availIndexer.getEventFromExtrinsicId(
+            transaction.id,
+            "MessageSubmitted"
+          );
+          operation = this.createOperationForAvailSends(
+            transaction,
+            event,
+            value
+          );
+        }
+      }
       if (operation) {
         operations.push(operation);
       }
     }
 
-    try {
-      await prisma.$transaction(operations);
-      console.log("All operations completed successfully");
-    } catch (error) {
-      console.error("An error occurred during the transaction:", error);
-      throw error;
+    this.executePrismaTx(operations);
+  }
+
+  private async processTransactionsInAvailReceive(
+    transactions: IAvailExtrinsic[],
+    block: number
+  ) {
+    const operations = [];
+
+    for (const transaction of transactions) {
+      let operation;
+      if (transaction.argsValue) {
+        const value = JSON.parse(transaction.argsValue[0]);
+        if (
+          value &&
+          value.message &&
+          value.message.fungibleToken &&
+          new BigNumber(value.message.fungibleToken.amount, 16).gt(0)
+        ) {
+          const event = await this.availIndexer.getEventFromExtrinsicId(
+            transaction.id,
+            "MessageExecuted"
+          );
+          operation = this.createOperationForAvailReceive(
+            transaction,
+            event,
+            value
+          );
+        }
+      }
+      if (operation) {
+        operations.push(operation);
+      }
     }
+
+    this.executePrismaTx(operations);
   }
 
   private createOperationForEthereumSends(
@@ -420,165 +551,89 @@ export default class TransactionCron {
     }
   }
 
-  async updateReceiveOnAvail(): Promise<boolean> {
-    try {
-      const limit = 500;
-      const latestTransaction = await prisma.ethereumsends.findFirst({
-        where: {
-          destinationTransactionHash: { not: null },
+  private createOperationForAvailSends(
+    transaction: IAvailExtrinsic,
+    event: IAvailEvent[],
+    value: any
+  ): any {
+    if (event && event[0]) {
+      const sourceObj = () => {
+        return {
+          sourceTransactionHash: transaction.txHash.toLowerCase(),
+          sourceBlockNumber: BigInt(transaction.blockHeight),
+          sourceTransactionIndex: transaction.extrinsicIndex,
+          sourceTimestamp: new Date(
+            parseInt(transaction.timestamp) * 1000
+          ).toISOString(),
+          depositorAddress: data.argsValue[0],
+          receiverAddress: transaction.argsValue[1].slice(0, 42).toLowerCase(),
+          sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
+          amount: BigInt(value.fungibleToken.amount).toString(),
+          dataType: "ERC20",
+          status: "BRIDGED",
+          sourceBlockHash: data.block.hash,
+        };
+      };
+      const data = event[0];
+      const operation = prisma.availsends.upsert({
+        where: { messageId: BigInt(data.argsValue[4]) },
+        update: { ...sourceObj() },
+        create: {
+          messageId: BigInt(data.argsValue[4]),
+          ...sourceObj(),
         },
-        orderBy: {
-          destinationBlockNumber: "desc",
-        },
-        take: 1,
       });
-      let startBlockNumber = 0;
-      if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
-      }
-
-      let findMore = true;
-      while (findMore) {
-        const receiveMessage = await this.availIndexer.getReceiveMessageTx(
-          startBlockNumber,
-          limit
-        );
-        if (receiveMessage && receiveMessage.length === limit) {
-          startBlockNumber = parseInt(
-            receiveMessage[receiveMessage.length - 1].blockHeight
-          );
-        } else {
-          findMore = false;
-        }
-
-        for (const transaction of receiveMessage) {
-          if (transaction.argsValue) {
-            const value = JSON.parse(transaction.argsValue[1]);
-            if (
-              value &&
-              value.message &&
-              value.message.fungibleToken &&
-              new BigNumber(value.message.fungibleToken.amount, 16).gt(0)
-            ) {
-              const event = await this.availIndexer.getEventFromExtrinsicId(
-                transaction.id,
-                "MessageExecuted"
-              );
-              if (event && event[0]) {
-                const data = event[0];
-                const sourceObj = () => {
-                  return {
-                    destinationTransactionHash:
-                      transaction.txHash.toLowerCase(),
-                    destinationBlockNumber: BigInt(transaction.blockHeight),
-                    destinationTransactionIndex: transaction.extrinsicIndex,
-                    destinationTimestamp: new Date(
-                      parseInt(transaction.timestamp) * 1000
-                    ).toISOString(),
-                    depositorAddress: data.argsValue[0]
-                      .slice(0, 42)
-                      .toLowerCase(),
-                    receiverAddress: encodeAddress(data.argsValue[1]),
-                    destinationTokenAddress:
-                      value.message.fungibleToken.assetId.toLowerCase(),
-                    amount: new BigNumber(
-                      value.message.fungibleToken.amount,
-                      16
-                    ).toString(),
-                    dataType: "ERC20",
-                    status: "CLAIMED",
-                    destinationBlockHash: data.block.hash,
-                  };
-                };
-                await prisma.ethereumsends.upsert({
-                  where: { messageId: BigInt(data.argsValue[2]) },
-                  update: { ...sourceObj() },
-                  create: {
-                    messageId: BigInt(data.argsValue[2]),
-                    ...sourceObj(),
-                  },
-                });
-              }
-            }
-          }
-        }
-      }
-      return true;
-    } catch (error) {
-      logger.error(error);
-      return false;
+      return operation;
     }
   }
 
-  async updateAvlToEthToReadyToClaim(): Promise<void> {
-    try {
-      let response = await this.bridgeApi.getAvailLatestHeadOnEthereum();
-
-      if (
-        response &&
-        response.data &&
-        response.data.data &&
-        response.data.data.end
-      ) {
-        await prisma.availsends.updateMany({
-          where: {
-            status: "SENT",
-            sourceBlockNumber: { lte: response.data.data.end },
-          },
-          data: {
-            status: "READY_TO_CLAIM",
-          },
-        });
-      }
-
-      await prisma.availsends.updateMany({
-        where: {
-          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
-          sourceTransactionHash: { not: null },
-          destinationTransactionHash: { not: null },
-        },
-        data: {
+  private createOperationForAvailReceive(
+    transaction: IAvailExtrinsic,
+    event: IAvailEvent[],
+    value: any
+  ): any {
+    if (event && event[0]) {
+      const data = event[0];
+      const sourceObj = () => {
+        return {
+          destinationTransactionHash: transaction.txHash.toLowerCase(),
+          destinationBlockNumber: BigInt(transaction.blockHeight),
+          destinationTransactionIndex: transaction.extrinsicIndex,
+          destinationTimestamp: new Date(
+            parseInt(transaction.timestamp) * 1000
+          ).toISOString(),
+          depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
+          receiverAddress: encodeAddress(data.argsValue[1]),
+          destinationTokenAddress:
+            value.message.fungibleToken.assetId.toLowerCase(),
+          amount: new BigNumber(
+            value.message.fungibleToken.amount,
+            16
+          ).toString(),
+          dataType: "ERC20",
           status: "CLAIMED",
+          destinationBlockHash: data.block.hash,
+        };
+      };
+      return prisma.ethereumsends.upsert({
+        where: { messageId: BigInt(data.argsValue[2]) },
+        update: { ...sourceObj() },
+        create: {
+          messageId: BigInt(data.argsValue[2]),
+          ...sourceObj(),
         },
       });
-
-      await prisma.ethereumsends.updateMany({
-        where: {
-          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
-          sourceTransactionHash: { not: null },
-          destinationTransactionHash: { not: null },
-        },
-        data: {
-          status: "CLAIMED",
-        },
-      });
-    } catch (error) {
-      logger.error("something went wrong while axios call", error);
     }
+    return null;
   }
 
-  async updateEthToAvlToReadyToClaim(): Promise<void> {
+  private async executePrismaTx(operations: Prisma.PrismaPromise<any>[]) {
     try {
-      let response = await this.bridgeApi.getEthLatestHeadOnAvail();
-
-      if (response && response.data && response.data.slot) {
-        let block = await this.bridgeApi.getBlockNumberBySlot(
-          response.data.slot
-        );
-        if (block && block.data && block.data.blockNumber) {
-          await prisma.ethereumsends.updateMany({
-            where: {
-              status: "SENT",
-              sourceBlockNumber: { lte: block.data.blockNumber },
-            },
-            data: {
-              status: "READY_TO_CLAIM",
-            },
-          });
-        }
-      }
+      await prisma.$transaction(operations);
+      console.log("All operations completed successfully");
     } catch (error) {
-      logger.error("something went wrong while axios call", error);
+      console.error("An error occurred during the transaction:", error);
+      throw error;
     }
   }
 }
