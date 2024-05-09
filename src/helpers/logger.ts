@@ -1,9 +1,6 @@
 import Pino from "pino";
 
 const pino = Pino.pino({
-  transport: {
-    target: "pino-pretty",
-  },
   formatters: {
     bindings: (bindings) => {
       return { pid: bindings.pid, host: bindings.hostname };
