@@ -334,13 +334,7 @@ export default class TransactionCron {
       }
     }
 
-    try {
-      await prisma.$transaction(operations);
-      console.log("All operations for ethereum sends completed successfully");
-    } catch (error) {
-      console.error("An error occurred during the transaction:", error);
-      throw error;
-    }
+    await this.executePrismaTx(operations);
   }
 
   private async processTransactionsInBlockEthereumReceive(
@@ -359,7 +353,7 @@ export default class TransactionCron {
       }
     }
 
-    this.executePrismaTx(operations);
+    await this.executePrismaTx(operations);
   }
 
   private async processTransactionsInAvailSends(
@@ -393,7 +387,7 @@ export default class TransactionCron {
       }
     }
 
-    this.executePrismaTx(operations);
+    await this.executePrismaTx(operations);
   }
 
   private async processTransactionsInAvailReceive(
@@ -428,7 +422,7 @@ export default class TransactionCron {
       }
     }
 
-    this.executePrismaTx(operations);
+    await this.executePrismaTx(operations);
   }
 
   private createOperationForEthereumSends(
@@ -630,9 +624,9 @@ export default class TransactionCron {
   private async executePrismaTx(operations: Prisma.PrismaPromise<any>[]) {
     try {
       await prisma.$transaction(operations);
-      console.log("All operations completed successfully");
+      logger.info("All operations completed successfully");
     } catch (error) {
-      console.error("An error occurred during the transaction:", error);
+      logger.error("An error occurred during the transaction:", error);
       throw error;
     }
   }

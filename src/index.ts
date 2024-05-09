@@ -103,11 +103,11 @@ async function startCron() {
   try {
     console.log("Initial Sync Started");
     await transactionCron.updateEthereumSend();
-    // await transactionCron.updateEthereumReceive();
-    // await transactionCron.updateSendOnAvail();
-    // await transactionCron.updateReceiveOnAvail();
-    // await transactionCron.updateAvlToEthToReadyToClaim();
-    // await transactionCron.updateEthToAvlToReadyToClaim();
+    await transactionCron.updateEthereumReceive();
+    await transactionCron.updateSendOnAvail();
+    await transactionCron.updateReceiveOnAvail();
+    await transactionCron.updateAvlToEthToReadyToClaim();
+    await transactionCron.updateEthToAvlToReadyToClaim();
     console.log("Initial Syncing completed.");
 
     startFunction(
