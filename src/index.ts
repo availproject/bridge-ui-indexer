@@ -72,15 +72,15 @@ async function startApi() {
       },
       (err, address) => {
         if (err) {
-          console.error(err);
+          logger.error(err);
           process.exit(1);
         }
 
-        console.info(`Server listening at ${address}`);
+        logger.info(`Server listening at ${address}`);
       }
     );
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -101,14 +101,14 @@ async function startCron() {
   );
 
   try {
-    console.log("Initial Sync Started");
+    logger.info("Initial Sync Started");
     await transactionCron.updateEthereumSend();
     await transactionCron.updateEthereumReceive();
     await transactionCron.updateSendOnAvail();
     await transactionCron.updateReceiveOnAvail();
     await transactionCron.updateAvlToEthToReadyToClaim();
     await transactionCron.updateEthToAvlToReadyToClaim();
-    console.log("Initial Syncing completed.");
+    logger.info("Initial Syncing completed.");
 
     startFunction(
       transactionCron.updateEthereumSend.bind(transactionCron),
