@@ -1,0 +1,40 @@
+name: Release
+on:
+  release:
+    types:
+      - released
+jobs:
+  docker_build_push:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Export Tag Var
+        id: prepare
+        run: |
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Sets Digital Ocean Registry
+        id: sets_do_registry
+        run: |
+          echo "DO_REGISTRY=registry.digitalocean.com" >> "$GITHUB_OUTPUT"
+      - name: Login to Dockerhub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.sets_do_registry.outputs.DO_REGISTRY }}
+          username: ${{ secrets.DO_USER_EMAIL }}
+          password: ${{ secrets.DO_USER_TOKEN }}
+      - name: Build and push images
+        uses: docker/build-push-action@v5
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.sets_do_registry.outputs.DO_REGISTRY }}/availj/bridge-indexer:${{ steps.prepare.outputs.TAG }}
