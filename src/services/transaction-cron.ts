@@ -627,7 +627,6 @@ export default class TransactionCron {
       logger.info("All operations completed successfully");
     } catch (error) {
       logger.error("An error occurred during the transaction:", error);
-      throw error;
     }
   }
 }
