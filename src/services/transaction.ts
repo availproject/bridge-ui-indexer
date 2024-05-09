@@ -113,7 +113,7 @@ export default class TransactionService {
 
         const result: any = []
 
-        transactions.forEach(obj => {
+        transactions.forEach((obj: any) => {
             result.push(JSON.parse(JSON.stringify(obj, (key, value) =>
                 typeof value === 'bigint'
                     ? value.toString()
