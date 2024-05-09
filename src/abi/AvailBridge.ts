@@ -1,4 +1,4 @@
-[
+export default [
   {
     "inputs": [],
     "name": "AccessControlBadConfirmation",
@@ -101,6 +101,11 @@
   },
   {
     "inputs": [],
+    "name": "ExceedsMaxDataLength",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ExpectedPause",
     "type": "error"
   },
@@ -117,11 +122,6 @@
   {
     "inputs": [],
     "name": "InvalidAssetId",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidDataLength",
     "type": "error"
   },
   {
@@ -450,7 +450,7 @@
     "name": "avail",
     "outputs": [
       {
-        "internalType": "contract IAvail",
+        "internalType": "contract IWrappedAvail",
         "name": "",
         "type": "address"
       }
@@ -662,7 +662,7 @@
         "type": "address"
       },
       {
-        "internalType": "contract IAvail",
+        "internalType": "contract IWrappedAvail",
         "name": "newAvail",
         "type": "address"
       },

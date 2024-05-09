@@ -9,6 +9,16 @@ type SendMessage @entity {
   transactionHash: Bytes!
   logIndex: String!
   input: Bytes!
+  logs: [LogObject!]! @derivedFrom(field: "sendMessage")
+}
+
+type LogObject @entity {
+  id: ID!
+  address: Bytes!
+  topics: [Bytes!]!
+  logIndex: BigInt!
+  logData: Bytes!
+  sendMessage: SendMessage!
 }
 
 type ReceiveMessage @entity {

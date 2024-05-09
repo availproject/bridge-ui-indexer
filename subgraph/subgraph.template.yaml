@@ -1,4 +1,4 @@
-specVersion: 0.0.4
+specVersion: 0.0.5
 description: Indexes bridge transaction on avail
 schema:
   file: ./schema.graphql
@@ -12,7 +12,7 @@ dataSources:
       startBlock: {{ contracts.AvailBridge.startBlock }}
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
         - SendMessage
@@ -23,6 +23,7 @@ dataSources:
       eventHandlers:
         - event: MessageSent(indexed address,indexed bytes32,uint256)
           handler: handleMessageSent
+          receipt: true
         - event: MessageReceived(indexed bytes32,indexed address,uint256)
           handler: handleMessageReceived
       file: ./src/mappings/avail-bridge.ts
