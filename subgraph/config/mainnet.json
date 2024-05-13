@@ -2,8 +2,8 @@
   "network": "mainnet",
   "contracts": {
     "AvailBridge": {
-      "address": "0x75545225c83b985f3a517bf61f316266057bb13b",
-      "startBlock": 5200000
+      "address": "0x272292eC4d451bf13316c4bD797B55A496aF5F82",
+      "startBlock": 19819800
     }
   }
 }
