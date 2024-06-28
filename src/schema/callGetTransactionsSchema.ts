@@ -21,7 +21,7 @@ export default {
             status: {
                 type: 'string',
                 nullable: true,
-                enum: ['BRIDGED', 'READY_TO_CLAIM', 'CLAIMED']
+                enum: ['IN_PROGRESS', 'READY_TO_CLAIM', 'CLAIMED']
             }
         },
         required: []

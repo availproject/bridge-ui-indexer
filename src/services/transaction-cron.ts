@@ -25,7 +25,7 @@ export default class TransactionCron {
     private ethIndexer: EthIndexer,
     private bridgeApi: BridgeApi,
     private availContractAddress: string
-  ) {}
+  ) { }
 
   async updateEthereumSend(): Promise<void> {
     try {
@@ -306,8 +306,8 @@ export default class TransactionCron {
           "block" in transaction
             ? transaction.block
             : "blockHeight" in transaction
-            ? transaction.blockHeight.toString()
-            : "";
+              ? transaction.blockHeight.toString()
+              : "";
 
         if (!acc[block]) {
           acc[block] = [];
@@ -444,13 +444,13 @@ export default class TransactionCron {
     const transferLog = logs.find((log) => {
       return (
         log.topics[0] ===
-          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
         log.address.toLowerCase() === this.availContractAddress.toLowerCase() &&
         BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
         (decodeParameter("address", log.topics[1]) as string).toLowerCase() ===
-          from &&
+        from &&
         (decodeParameter("address", log.topics[2]) as string) ===
-          "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000"
       );
     });
 
@@ -475,8 +475,8 @@ export default class TransactionCron {
         receiverAddress: encodeAddress(to),
         amount: transferLog
           ? (
-              decodeParameter("uint256", transferLog.logData) as BigInt
-            ).toString()
+            decodeParameter("uint256", transferLog.logData) as BigInt
+          ).toString()
           : decodedData.result!.params[1].value,
         dataType: "ERC20",
         status: "SENT",
@@ -564,7 +564,7 @@ export default class TransactionCron {
           sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
           amount: BigInt(value.fungibleToken.amount).toString(),
           dataType: "ERC20",
-          status: "BRIDGED",
+          status: "IN_PROGRESS",
           sourceBlockHash: data.block.hash,
         };
       };

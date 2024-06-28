@@ -30,7 +30,7 @@ query_params = {
     pageSize: 100, // nullable
     sourceChain: 'AVAIL' // 'ETHEREUM' nullable
     destinationChain: 'ETHEREUM' // 'AVAIL' nullable
-    status: 'BRIDGED' // 'READY_TO_CLAIM', 'CLAIMED' nullable
+    status: 'IN_PROGRESS' // 'READY_TO_CLAIM', 'CLAIMED' nullable
     userAddress: '0xe985ea00abb8e75a49db934dc024b62b09c1dfa3' // nullable
 }
 ```
