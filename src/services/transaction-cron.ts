@@ -572,9 +572,9 @@ export default class TransactionCron {
         };
       };
 
-      logger.info(sourceObj(), "MessageSent");
 
       const data = event[0];
+      logger.info(sourceObj(), "MessageSent");
       const operation = prisma.availsends.upsert({
         where: { messageId: BigInt(data.argsValue[4]) },
         update: { ...sourceObj() },
