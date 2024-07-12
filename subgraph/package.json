@@ -9,9 +9,8 @@
     "graph": "graph",
     "codegen": "graph codegen",
     "build": "graph build",
-    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
-    "prepare:testnet": "mustache config/testnet.json subgraph.template.yaml > subgraph.yaml",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nitinmittal23/avail-bridge-subgraph",
+    "prepare": "mustache config/$NETWORK.json subgraph.template.yaml > subgraph.yaml",
+    "deploy": "graph deploy avail-bridge-$NETWORK --version-label $SUBGRAPH_VERSION --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz",
     "create-local": "graph create --node http://localhost:8020/ nitinmittal23/avail-bridge-subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ nitinmittal23/avail-bridge-subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs https://ipfs.infura.io:5001 nitinmittal23/avail-bridge-subgraph"

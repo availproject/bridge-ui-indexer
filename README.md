@@ -94,3 +94,27 @@ npm run start
 ```bash
 npm run start:dev
 ```
+
+## Deploying Subgraphs
+To work and deploy subgraphs:
+
+1. Generate `subgraph.yaml` file according to desired network:
+
+```
+$ cd subgraph
+$ NETWORK=<devnet|testnet|mainnet> npm run prepare
+```
+
+2. Compare and validate generated `subgraph.yaml` against subgraph/config/<NETWORK>.json (**Bridge contract address and start block only**)
+
+3. Deploy the subgraph on Alchemy and wait for it to sync.
+
+```
+$ cd subgraph
+$ NETWORK=<devnet|testnet|mainnet> SUBGRAPH_VERSION=v0.x.x DEPLOY_KEY=<REDACTED> npm run deploy
+```
+
+**Notes:**
+> 1. Pick only 1 network per deploy
+> 2. You may not follow [semver](https://semver.org/) but it's not recommended
+> 3. DEPLOY_KEY secret is stored on Bitwarden  (Alchemy's creds on Bridge Collection)
