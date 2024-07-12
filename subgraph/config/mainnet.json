@@ -3,7 +3,7 @@
   "contracts": {
     "AvailBridge": {
       "address": "0x054fd961708d8e2b9c10a63f6157c74458889f0a",
-      "startBlock": 20272266      
+      "startBlock": 20272266
     }
   }
 }
