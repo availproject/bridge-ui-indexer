@@ -481,6 +481,7 @@ export default class TransactionCron {
         dataType: "ERC20",
         status: "SENT",
       };
+        logger.info(schemaObj, "sendAVAIL");
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(messageId) },
@@ -532,7 +533,9 @@ export default class TransactionCron {
             status: "CLAIMED",
           };
         };
-        return prisma.availsends.upsert({
+          logger.info(updateObj(), "receiveAVAIL");
+
+          return prisma.availsends.upsert({
           where: { messageId: BigInt(messageId) },
           update: { ...updateObj() },
           create: {
@@ -566,7 +569,10 @@ export default class TransactionCron {
           sourceBlockHash: data.block.hash,
         };
       };
+
+
       const data = event[0];
+      logger.info(sourceObj(), "MessageSent");
       const operation = prisma.availsends.upsert({
         where: { messageId: BigInt(data.argsValue[4]) },
         update: { ...sourceObj() },
@@ -607,7 +613,9 @@ export default class TransactionCron {
           destinationBlockHash: data.block.hash,
         };
       };
-      return prisma.ethereumsends.upsert({
+      logger.info(sourceObj(), "MessageExecuted");
+
+        return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(data.argsValue[2]) },
         update: { ...sourceObj() },
         create: {
