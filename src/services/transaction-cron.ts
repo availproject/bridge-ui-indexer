@@ -402,7 +402,7 @@ export default class TransactionCron {
     for (const transaction of transactions) {
       let operation;
       if (transaction.argsValue) {
-        const value = JSON.parse(transaction.argsValue[0]);
+        const value = JSON.parse(transaction.argsValue[1]);
         logger.debug(`Tx ArgsValue: ${transaction.argsValue}`)
         if (
           value &&
