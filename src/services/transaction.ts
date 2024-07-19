@@ -77,7 +77,7 @@ export default class TransactionService {
         },
       });
 
-      transactions = response.map((tx) => {
+      transactions = response.map((tx: Object) => {
         return {
             ...tx,
             //TODO: Remove below, should be handled by front end.
@@ -118,7 +118,7 @@ export default class TransactionService {
         },
       });
 
-      transactions = response.map((tx) => {
+      transactions = response.map((tx: Object) => {
         return {
             ...tx,
             sourceChain: "ETHEREUM"
