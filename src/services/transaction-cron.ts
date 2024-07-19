@@ -154,6 +154,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
+          logger.debug(`Block ${block} has ${transactions.length} Txs`)
           await this.processTransactionsInAvailSends(transactions, block);
         }
       }
@@ -375,6 +376,7 @@ export default class TransactionCron {
             transaction.id,
             "MessageSubmitted"
           );
+          logger.debug("AvailSendsPassed")
           operation = this.createOperationForAvailSends(
             transaction,
             event,
@@ -396,10 +398,12 @@ export default class TransactionCron {
   ) {
     const operations = [];
 
+    logger.debug(`Tx count: ${transactions.length}`)
     for (const transaction of transactions) {
       let operation;
       if (transaction.argsValue) {
         const value = JSON.parse(transaction.argsValue[0]);
+        logger.debug(`Tx ArgsValue: ${transaction.argsValue}`)
         if (
           value &&
           value.message &&
@@ -510,7 +514,7 @@ export default class TransactionCron {
       timestamp,
       input,
     } = transaction;
-
+    logger.debug(`MessageId on Eth Receive: ${messageId}`)
     if (input && input.slice(0, 10).toLowerCase() === "0xa25a59cc") {
       const decodedData = decoder.decodeReceiveAVAIL(input);
       const data = decodedData[0].data;
