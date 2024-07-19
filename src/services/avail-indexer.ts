@@ -14,7 +14,7 @@ export default class AvailIndexer {
                       filter: { 
                         call: { equalTo: "sendMessage" },
                         success: { equalTo: true },
-                        blockHeight: {greaterThan: "${startBlockNumber}"}
+                        blockHeight: { greaterThanOrEqualTo: "${startBlockNumber}" }
                       }
                       first: ${limit}
                       orderBy: BLOCK_HEIGHT_ASC
@@ -58,7 +58,7 @@ export default class AvailIndexer {
                       filter: { 
                         call: { equalTo: "execute" },
                         success: { equalTo: true },
-                        blockHeight: {greaterThan: "${startBlockNumber}"}
+                        blockHeight: { greaterThanOrEqualTo: "${startBlockNumber}" }
                       }
                       first: ${limit}
                       orderBy: BLOCK_HEIGHT_ASC
