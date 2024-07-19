@@ -105,7 +105,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInBlockEthereumReceive(transactions, block);
+          await this.processTransactionsInBlockEthereumReceive(transactions, block);
         }
       }
       return true;
@@ -154,7 +154,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInAvailSends(transactions, block);
+          await this.processTransactionsInAvailSends(transactions, block);
         }
       }
       return true;
@@ -203,7 +203,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInAvailReceive(transactions, block);
+          await this.processTransactionsInAvailReceive(transactions, block);
         }
       }
       return true;
