@@ -25,7 +25,7 @@ export default class TransactionCron {
     private ethIndexer: EthIndexer,
     private bridgeApi: BridgeApi,
     private availContractAddress: string
-  ) {}
+  ) { }
 
   async updateEthereumSend(): Promise<void> {
     try {
@@ -105,7 +105,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInBlockEthereumReceive(transactions, block);
+          await this.processTransactionsInBlockEthereumReceive(transactions, block);
         }
       }
       return true;
@@ -154,7 +154,8 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInAvailSends(transactions, block);
+          logger.debug(`Block ${block} has ${transactions.length} Txs`)
+          await this.processTransactionsInAvailSends(transactions, block);
         }
       }
       return true;
@@ -203,7 +204,7 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          this.processTransactionsInAvailReceive(transactions, block);
+          await this.processTransactionsInAvailReceive(transactions, block);
         }
       }
       return true;
@@ -225,7 +226,7 @@ export default class TransactionCron {
       ) {
         await prisma.availsends.updateMany({
           where: {
-            status: "SENT",
+            status: "BRIDGED",
             sourceBlockNumber: { lte: response.data.data.end },
           },
           data: {
@@ -234,9 +235,10 @@ export default class TransactionCron {
         });
       }
 
+      //TODO: below updates may not be required. The OR conditions can be checked above.
       await prisma.availsends.updateMany({
         where: {
-          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
+          OR: [{ status: "BRIDGED" }, { status: "READY_TO_CLAIM" }],
           sourceTransactionHash: { not: null },
           destinationTransactionHash: { not: null },
         },
@@ -247,7 +249,7 @@ export default class TransactionCron {
 
       await prisma.ethereumsends.updateMany({
         where: {
-          OR: [{ status: "SENT" }, { status: "READY_TO_CLAIM" }],
+          OR: [{ status: "BRIDGED" }, { status: "READY_TO_CLAIM" }],
           sourceTransactionHash: { not: null },
           destinationTransactionHash: { not: null },
         },
@@ -271,7 +273,7 @@ export default class TransactionCron {
         if (block && block.data && block.data.blockNumber) {
           await prisma.ethereumsends.updateMany({
             where: {
-              status: "SENT",
+              status: "BRIDGED",
               sourceBlockNumber: { lte: block.data.blockNumber },
             },
             data: {
@@ -306,8 +308,8 @@ export default class TransactionCron {
           "block" in transaction
             ? transaction.block
             : "blockHeight" in transaction
-            ? transaction.blockHeight.toString()
-            : "";
+              ? transaction.blockHeight.toString()
+              : "";
 
         if (!acc[block]) {
           acc[block] = [];
@@ -375,6 +377,7 @@ export default class TransactionCron {
             transaction.id,
             "MessageSubmitted"
           );
+          logger.debug("AvailSendsPassed")
           operation = this.createOperationForAvailSends(
             transaction,
             event,
@@ -396,10 +399,12 @@ export default class TransactionCron {
   ) {
     const operations = [];
 
+    logger.debug(`Tx count: ${transactions.length}`)
     for (const transaction of transactions) {
       let operation;
       if (transaction.argsValue) {
-        const value = JSON.parse(transaction.argsValue[0]);
+        const value = JSON.parse(transaction.argsValue[1]);
+        logger.debug(`Tx ArgsValue: ${transaction.argsValue}`)
         if (
           value &&
           value.message &&
@@ -444,13 +449,13 @@ export default class TransactionCron {
     const transferLog = logs.find((log) => {
       return (
         log.topics[0] ===
-          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
         log.address.toLowerCase() === this.availContractAddress.toLowerCase() &&
         BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
         (decodeParameter("address", log.topics[1]) as string).toLowerCase() ===
-          from &&
+        from &&
         (decodeParameter("address", log.topics[2]) as string) ===
-          "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000"
       );
     });
 
@@ -475,13 +480,12 @@ export default class TransactionCron {
         receiverAddress: encodeAddress(to),
         amount: transferLog
           ? (
-              decodeParameter("uint256", transferLog.logData) as BigInt
-            ).toString()
+            decodeParameter("uint256", transferLog.logData) as BigInt
+          ).toString()
           : decodedData.result!.params[1].value,
         dataType: "ERC20",
-        status: "SENT",
       };
-        logger.info(schemaObj, "sendAVAIL");
+      logger.info(schemaObj, "sendAVAIL");
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(messageId) },
@@ -489,6 +493,7 @@ export default class TransactionCron {
         create: {
           messageId: BigInt(messageId),
           ...schemaObj,
+          status: "BRIDGED",
         },
       });
     }
@@ -510,7 +515,7 @@ export default class TransactionCron {
       timestamp,
       input,
     } = transaction;
-
+    logger.debug(`MessageId on Eth Receive: ${messageId}`)
     if (input && input.slice(0, 10).toLowerCase() === "0xa25a59cc") {
       const decodedData = decoder.decodeReceiveAVAIL(input);
       const data = decodedData[0].data;
@@ -533,9 +538,9 @@ export default class TransactionCron {
             status: "CLAIMED",
           };
         };
-          logger.info(updateObj(), "receiveAVAIL");
+        logger.info(updateObj(), "receiveAVAIL");
 
-          return prisma.availsends.upsert({
+        return prisma.availsends.upsert({
           where: { messageId: BigInt(messageId) },
           update: { ...updateObj() },
           create: {
@@ -565,7 +570,6 @@ export default class TransactionCron {
           sourceTokenAddress: value.fungibleToken.assetId.toLowerCase(),
           amount: BigInt(value.fungibleToken.amount).toString(),
           dataType: "ERC20",
-          status: "BRIDGED",
           sourceBlockHash: data.block.hash,
         };
       };
@@ -579,6 +583,7 @@ export default class TransactionCron {
         create: {
           messageId: BigInt(data.argsValue[4]),
           ...sourceObj(),
+          status: "BRIDGED",
         },
       });
       return operation;
@@ -597,9 +602,7 @@ export default class TransactionCron {
           destinationTransactionHash: transaction.txHash.toLowerCase(),
           destinationBlockNumber: BigInt(transaction.blockHeight),
           destinationTransactionIndex: transaction.extrinsicIndex,
-          destinationTimestamp: new Date(
-            parseInt(transaction.timestamp) * 1000
-          ).toISOString(),
+          destinationTimestamp: new Date(transaction.timestamp).toISOString(),
           depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
           receiverAddress: encodeAddress(data.argsValue[1]),
           destinationTokenAddress:
@@ -615,7 +618,7 @@ export default class TransactionCron {
       };
       logger.info(sourceObj(), "MessageExecuted");
 
-        return prisma.ethereumsends.upsert({
+      return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(data.argsValue[2]) },
         update: { ...sourceObj() },
         create: {
