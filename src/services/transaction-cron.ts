@@ -601,9 +601,7 @@ export default class TransactionCron {
           destinationTransactionHash: transaction.txHash.toLowerCase(),
           destinationBlockNumber: BigInt(transaction.blockHeight),
           destinationTransactionIndex: transaction.extrinsicIndex,
-          destinationTimestamp: new Date(
-            parseInt(transaction.timestamp) * 1000
-          ).toISOString(),
+          destinationTimestamp: new Date(transaction.timestamp).toISOString(),
           depositorAddress: data.argsValue[0].slice(0, 42).toLowerCase(),
           receiverAddress: encodeAddress(data.argsValue[1]),
           destinationTokenAddress:
