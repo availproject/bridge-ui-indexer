@@ -41,7 +41,6 @@
     "nodemon": "^3.1.0",
     "pino": "^9.0.0",
     "prisma": "^5.13.0",
-    "ts-node-dev": "^2.0.0",
     "web3-eth-abi": "^4.2.1"
   },
   "devDependencies": {

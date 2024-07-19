@@ -112,27 +112,27 @@ async function startCron() {
 
     startFunction(
       transactionCron.updateEthereumSend.bind(transactionCron),
-      120000
+      Number(process.env.ETHEREUM_SEND_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateEthereumReceive.bind(transactionCron),
-      120000
+      Number(process.env.ETHEREUM_RECEIVE_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateSendOnAvail.bind(transactionCron),
-      120000
+      Number(process.env.SEND_ON_AVAIL_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateReceiveOnAvail.bind(transactionCron),
-      120000
+      Number(process.env.RECEIVE_ON_AVAIL_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateAvlToEthToReadyToClaim.bind(transactionCron),
-      120000
+      Number(process.env.AVL_TO_ETH_TO_READY_TO_CLAIM_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateEthToAvlToReadyToClaim.bind(transactionCron),
-      120000
+      Number(process.env.ETH_TO_AVL_TO_READY_TO_CLAIM_CRON_INTERVAL) || 120000
     );
   } catch (error) {
     logger.error("error in syncing All transactions: ", error);

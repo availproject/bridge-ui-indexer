@@ -15,7 +15,7 @@ datasource db {
 
 model availsends {
   messageId BigInt @id
-  status String @default("SENT")
+  status String @default("BRIDGED")
   sourceTransactionHash String? @db.VarChar(66)
   sourceBlockNumber BigInt?
   sourceBlockHash String? @db.VarChar(66)
@@ -37,7 +37,7 @@ model availsends {
 
 model ethereumsends {
   messageId BigInt @id
-  status String @default("SENT")
+  status String @default("BRIDGED")
   sourceTransactionHash String? @db.VarChar(66)
   sourceBlockNumber BigInt?
   sourceBlockHash String? @db.VarChar(66)
