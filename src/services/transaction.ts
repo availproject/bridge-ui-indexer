@@ -47,7 +47,7 @@ export default class TransactionService {
       totalCount = await prisma.availsends.count({
         where,
       });
-      transactions = await prisma.availsends.findMany({
+      const response = await prisma.availsends.findMany({
         where,
         select: {
           messageId: true,
@@ -76,11 +76,19 @@ export default class TransactionService {
           sourceBlockNumber: "desc",
         },
       });
+
+      transactions = response.map((tx: Object) => {
+        return {
+            ...tx,
+            //TODO: Remove below, should be handled by front end.
+            sourceChain: "AVAIL"
+        }
+    })
     } else {
       totalCount = await prisma.ethereumsends.count({
         where,
       });
-      transactions = await prisma.ethereumsends.findMany({
+      const response = await prisma.ethereumsends.findMany({
         where,
         select: {
           messageId: true,
@@ -109,6 +117,13 @@ export default class TransactionService {
           sourceBlockNumber: "desc",
         },
       });
+
+      transactions = response.map((tx: Object) => {
+        return {
+            ...tx,
+            sourceChain: "ETHEREUM"
+        }
+    });
     }
 
     const result: any = [];
