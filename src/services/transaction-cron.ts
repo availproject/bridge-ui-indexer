@@ -25,7 +25,7 @@ export default class TransactionCron {
     private ethIndexer: EthIndexer,
     private bridgeApi: BridgeApi,
     private availContractAddress: string
-  ) { }
+  ) {}
 
   async updateEthereumSend(): Promise<void> {
     try {
@@ -62,11 +62,10 @@ export default class TransactionCron {
       }
     } catch (error) {
       logger.error(error);
-      throw error;
     }
   }
 
-  async updateEthereumReceive(): Promise<boolean> {
+  async updateEthereumReceive(): Promise<void> {
     try {
       const limit = 1000;
       const latestTransaction = await prisma.availsends.findFirst({
@@ -105,17 +104,18 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          await this.processTransactionsInBlockEthereumReceive(transactions, block);
+          await this.processTransactionsInBlockEthereumReceive(
+            transactions,
+            block
+          );
         }
       }
-      return true;
     } catch (error) {
       logger.error(error);
-      return false;
     }
   }
 
-  async updateSendOnAvail(): Promise<boolean> {
+  async updateSendOnAvail(): Promise<void> {
     try {
       const limit = 500;
       const latestTransaction = await prisma.availsends.findFirst({
@@ -154,18 +154,16 @@ export default class TransactionCron {
 
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
-          logger.debug(`Block ${block} has ${transactions.length} Txs`)
+          logger.debug(`Block ${block} has ${transactions.length} Txs`);
           await this.processTransactionsInAvailSends(transactions, block);
         }
       }
-      return true;
     } catch (error) {
       logger.error(error);
-      return false;
     }
   }
 
-  async updateReceiveOnAvail(): Promise<boolean> {
+  async updateReceiveOnAvail(): Promise<void> {
     try {
       const limit = 500;
       const latestTransaction = await prisma.ethereumsends.findFirst({
@@ -207,10 +205,8 @@ export default class TransactionCron {
           await this.processTransactionsInAvailReceive(transactions, block);
         }
       }
-      return true;
     } catch (error) {
       logger.error(error);
-      return false;
     }
   }
 
@@ -234,7 +230,6 @@ export default class TransactionCron {
           },
         });
       }
-
       //TODO: below updates may not be required. The OR conditions can be checked above.
       await prisma.availsends.updateMany({
         where: {
@@ -308,8 +303,8 @@ export default class TransactionCron {
           "block" in transaction
             ? transaction.block
             : "blockHeight" in transaction
-              ? transaction.blockHeight.toString()
-              : "";
+            ? transaction.blockHeight.toString()
+            : "";
 
         if (!acc[block]) {
           acc[block] = [];
@@ -377,7 +372,7 @@ export default class TransactionCron {
             transaction.id,
             "MessageSubmitted"
           );
-          logger.debug("AvailSendsPassed")
+          logger.debug("AvailSendsPassed");
           operation = this.createOperationForAvailSends(
             transaction,
             event,
@@ -399,12 +394,12 @@ export default class TransactionCron {
   ) {
     const operations = [];
 
-    logger.debug(`Tx count: ${transactions.length}`)
+    logger.debug(`Tx count: ${transactions.length}`);
     for (const transaction of transactions) {
       let operation;
       if (transaction.argsValue) {
         const value = JSON.parse(transaction.argsValue[1]);
-        logger.debug(`Tx ArgsValue: ${transaction.argsValue}`)
+        logger.debug(`Tx ArgsValue: ${transaction.argsValue}`);
         if (
           value &&
           value.message &&
@@ -449,13 +444,13 @@ export default class TransactionCron {
     const transferLog = logs.find((log) => {
       return (
         log.topics[0] ===
-        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
         log.address.toLowerCase() === this.availContractAddress.toLowerCase() &&
         BigInt(log.logIndex) === BigInt(logIndex) + BigInt(1) &&
         (decodeParameter("address", log.topics[1]) as string).toLowerCase() ===
-        from &&
+          from &&
         (decodeParameter("address", log.topics[2]) as string) ===
-        "0x0000000000000000000000000000000000000000"
+          "0x0000000000000000000000000000000000000000"
       );
     });
 
@@ -480,8 +475,8 @@ export default class TransactionCron {
         receiverAddress: encodeAddress(to),
         amount: transferLog
           ? (
-            decodeParameter("uint256", transferLog.logData) as BigInt
-          ).toString()
+              decodeParameter("uint256", transferLog.logData) as BigInt
+            ).toString()
           : decodedData.result!.params[1].value,
         dataType: "ERC20",
       };
@@ -515,7 +510,7 @@ export default class TransactionCron {
       timestamp,
       input,
     } = transaction;
-    logger.debug(`MessageId on Eth Receive: ${messageId}`)
+    logger.debug(`MessageId on Eth Receive: ${messageId}`);
     if (input && input.slice(0, 10).toLowerCase() === "0xa25a59cc") {
       const decodedData = decoder.decodeReceiveAVAIL(input);
       const data = decodedData[0].data;
@@ -573,7 +568,6 @@ export default class TransactionCron {
           sourceBlockHash: data.block.hash,
         };
       };
-
 
       const data = event[0];
       logger.info(sourceObj(), "MessageSent");
