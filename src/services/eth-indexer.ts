@@ -2,7 +2,7 @@ import { request, gql } from "graphql-request";
 import { IEthSendMessage, IEthReceiveMessage } from "../types/index.js";
 import logger from "../helpers/logger.js";
 export default class EthIndexer {
-  constructor(private subgraphUrl: string) { }
+  constructor(private subgraphUrl: string) {}
 
   async getSendMessageTx(
     startBlockNumber: number,
