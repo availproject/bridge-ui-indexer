@@ -120,7 +120,7 @@ async function startCron() {
     );
     startFunction(
       transactionCron.updateSendOnAvail.bind(transactionCron),
-      Number(process.env.SEND_ON_AVAIL_CRON_INTERVAL) || 120
+      Number(process.env.SEND_ON_AVAIL_CRON_INTERVAL) || 120000
     );
     startFunction(
       transactionCron.updateReceiveOnAvail.bind(transactionCron),

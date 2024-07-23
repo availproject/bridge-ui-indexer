@@ -84,7 +84,6 @@ export default class TransactionCron {
 
       let findMore = true;
       while (findMore) {
-        console.log(startBlockNumber);
         const receiveMessages = await this.ethIndexer.getReceiveMessageTx(
           startBlockNumber,
           limit
@@ -200,7 +199,7 @@ export default class TransactionCron {
         const blocks = Object.keys(blockToTransactionMapping)
           .map(Number)
           .sort((a, b) => a - b);
-        console.log("blocks", blocks.length);
+
         for (const block of blocks) {
           const transactions = blockToTransactionMapping[block];
           await this.processTransactionsInAvailReceive(transactions, block);
