@@ -33,6 +33,12 @@ model availsends {
   amount String?
   message String?
   dataType String
+
+  @@index([depositorAddress], map: "idx_depositorAddress_avl")
+  @@index([receiverAddress], map: "idx_receiverAddress_avl")
+  @@index([depositorAddress, status], map: "idx_status_depositorAddress_avl")
+  @@index([receiverAddress, status], map: "idx_status_receiverAddress_avl")
+
 }
 
 model ethereumsends {
@@ -55,4 +61,9 @@ model ethereumsends {
   amount String?
   message String?
   dataType String
+
+  @@index([depositorAddress], map: "idx_depositorAddress_eth")
+  @@index([receiverAddress], map: "idx_receiverAddress_eth")
+  @@index([depositorAddress, status], map: "idx_status_depositorAddress_eth")
+  @@index([receiverAddress, status], map: "idx_status_receiverAddress_eth")
 }
