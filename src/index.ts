@@ -142,11 +142,11 @@ async function startCron() {
 async function start() {
   bridgeApi = new BridgeApi(process.env.BRIDGE_API as string);
 
-  if (process.env.START_CRON) {
+  if (process.env.START_CRON == 'true') {
     await startCron();
   }
 
-  if (process.env.START_API) {
+  if (process.env.START_API == 'true') {
     await startApi();
   }
 }
