@@ -79,7 +79,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
+        startBlockNumber = Number(latestTransaction.destinationBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -129,7 +129,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.sourceBlockNumber);
+        startBlockNumber = Number(latestTransaction.sourceBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -177,7 +177,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
+        startBlockNumber = Number(latestTransaction.destinationBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -253,7 +253,10 @@ export default class TransactionCron {
         },
       });
     } catch (error) {
-      logger.error("something went wrong while axios call", error);
+      logger.error(
+        "UpdateAvlToETH something went wrong while axios call",
+        error
+      );
     }
   }
 
@@ -278,7 +281,10 @@ export default class TransactionCron {
         }
       }
     } catch (error) {
-      logger.error("something went wrong while axios call", error);
+      logger.error(
+        "updateEthToAvl something went wrong while axios call",
+        error
+      );
     }
   }
   private async getLatestProcessedBlockNumber(): Promise<number> {
@@ -291,7 +297,9 @@ export default class TransactionCron {
       },
       take: 1,
     });
-    return latestTransaction ? Number(latestTransaction.sourceBlockNumber) : 0;
+    return latestTransaction
+      ? Number(latestTransaction.sourceBlockNumber) + 1
+      : 0;
   }
 
   private groupTransactionsByBlock<
