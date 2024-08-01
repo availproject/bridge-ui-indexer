@@ -490,7 +490,20 @@ export default class TransactionCron {
           : decodedData.result!.params[1].value,
         dataType: "ERC20",
       };
-      logger.info(schemaObj, "sendAVAIL");
+
+      logger.info(
+        {
+          ...schemaObj,
+          amount_prettified: parseAmount(
+            transferLog
+              ? (
+                  decodeParameter("uint256", transferLog.logData) as BigInt
+                ).toString()
+              : decodedData.result!.params[1].value
+          ),
+        },
+        "sendAVAIL"
+      );
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(messageId) },
@@ -543,7 +556,13 @@ export default class TransactionCron {
             status: "CLAIMED",
           };
         };
-        logger.info(updateObj(), "receiveAVAIL");
+        logger.info(
+          {
+            ...updateObj(),
+            amount_prettified: parseAmount((params[1] as string).toString()),
+          },
+          "receiveAVAIL"
+        );
 
         return prisma.availsends.upsert({
           where: { messageId: BigInt(messageId) },
@@ -580,7 +599,16 @@ export default class TransactionCron {
       };
 
       const data = event[0];
-      logger.info(sourceObj(), "MessageSent");
+
+      logger.info(
+        {
+          ...sourceObj(),
+          amount_prettified: parseAmount(
+            BigInt(value.fungibleToken.amount).toString()
+          ),
+        },
+        "MessageSent"
+      );
       const operation = prisma.availsends.upsert({
         where: { messageId: BigInt(data.argsValue[4]) },
         update: { ...sourceObj() },
@@ -620,7 +648,16 @@ export default class TransactionCron {
           destinationBlockHash: data.block.hash,
         };
       };
-      logger.info(sourceObj(), "MessageExecuted");
+
+      logger.info(
+        {
+          ...sourceObj(),
+          amount_prettified: parseAmount(
+            new BigNumber(value.message.fungibleToken.amount, 16).toString()
+          ),
+        },
+        "MessageExecuted"
+      );
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(data.argsValue[2]) },
@@ -641,5 +678,18 @@ export default class TransactionCron {
     } catch (error) {
       logger.error("An error occurred during the transaction:", error);
     }
+  }
+}
+
+function parseAmount(numberString: string): string {
+  try {
+    const divisor = BigInt(10 ** 18);
+
+    const number = BigInt(numberString);
+    const result = number / divisor;
+
+    return result.toString();
+  } catch (e) {
+    return "";
   }
 }
