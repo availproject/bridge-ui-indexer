@@ -79,7 +79,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
+        startBlockNumber = Number(latestTransaction.destinationBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -129,7 +129,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.sourceBlockNumber);
+        startBlockNumber = Number(latestTransaction.sourceBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -177,7 +177,7 @@ export default class TransactionCron {
       });
       let startBlockNumber = 0;
       if (latestTransaction) {
-        startBlockNumber = Number(latestTransaction.destinationBlockNumber);
+        startBlockNumber = Number(latestTransaction.destinationBlockNumber) + 1;
       }
 
       let findMore = true;
@@ -253,7 +253,10 @@ export default class TransactionCron {
         },
       });
     } catch (error) {
-      logger.error("something went wrong while axios call", error);
+      logger.error(
+        "UpdateAvlToETH something went wrong while axios call",
+        error
+      );
     }
   }
 
@@ -278,7 +281,10 @@ export default class TransactionCron {
         }
       }
     } catch (error) {
-      logger.error("something went wrong while axios call", error);
+      logger.error(
+        "updateEthToAvl something went wrong while axios call",
+        error
+      );
     }
   }
   private async getLatestProcessedBlockNumber(): Promise<number> {
@@ -291,7 +297,9 @@ export default class TransactionCron {
       },
       take: 1,
     });
-    return latestTransaction ? Number(latestTransaction.sourceBlockNumber) : 0;
+    return latestTransaction
+      ? Number(latestTransaction.sourceBlockNumber) + 1
+      : 0;
   }
 
   private groupTransactionsByBlock<
@@ -410,6 +418,8 @@ export default class TransactionCron {
             transaction.id,
             "MessageExecuted"
           );
+
+          logger.debug("AvailReceivePassed");
           operation = this.createOperationForAvailReceive(
             transaction,
             event,
@@ -480,7 +490,20 @@ export default class TransactionCron {
           : decodedData.result!.params[1].value,
         dataType: "ERC20",
       };
-      logger.info(schemaObj, "sendAVAIL");
+
+      logger.info(
+        {
+          ...schemaObj,
+          amount_prettified: parseAmount(
+            transferLog
+              ? (
+                  decodeParameter("uint256", transferLog.logData) as BigInt
+                ).toString()
+              : decodedData.result!.params[1].value
+          ),
+        },
+        "sendAVAIL"
+      );
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(messageId) },
@@ -533,7 +556,13 @@ export default class TransactionCron {
             status: "CLAIMED",
           };
         };
-        logger.info(updateObj(), "receiveAVAIL");
+        logger.info(
+          {
+            ...updateObj(),
+            amount_prettified: parseAmount((params[1] as string).toString()),
+          },
+          "receiveAVAIL"
+        );
 
         return prisma.availsends.upsert({
           where: { messageId: BigInt(messageId) },
@@ -570,7 +599,16 @@ export default class TransactionCron {
       };
 
       const data = event[0];
-      logger.info(sourceObj(), "MessageSent");
+
+      logger.info(
+        {
+          ...sourceObj(),
+          amount_prettified: parseAmount(
+            BigInt(value.fungibleToken.amount).toString()
+          ),
+        },
+        "MessageSent"
+      );
       const operation = prisma.availsends.upsert({
         where: { messageId: BigInt(data.argsValue[4]) },
         update: { ...sourceObj() },
@@ -610,7 +648,16 @@ export default class TransactionCron {
           destinationBlockHash: data.block.hash,
         };
       };
-      logger.info(sourceObj(), "MessageExecuted");
+
+      logger.info(
+        {
+          ...sourceObj(),
+          amount_prettified: parseAmount(
+            new BigNumber(value.message.fungibleToken.amount, 16).toString()
+          ),
+        },
+        "MessageExecuted"
+      );
 
       return prisma.ethereumsends.upsert({
         where: { messageId: BigInt(data.argsValue[2]) },
@@ -631,5 +678,18 @@ export default class TransactionCron {
     } catch (error) {
       logger.error("An error occurred during the transaction:", error);
     }
+  }
+}
+
+function parseAmount(numberString: string): string {
+  try {
+    const divisor = BigInt(10 ** 18);
+
+    const number = BigInt(numberString);
+    const result = number / divisor;
+
+    return result.toString();
+  } catch (e) {
+    return "";
   }
 }
