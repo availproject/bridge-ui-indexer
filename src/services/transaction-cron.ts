@@ -6,8 +6,9 @@ import AvailIndexer from "./avail-indexer.js";
 import EthIndexer from "./eth-indexer.js";
 import BridgeApi from "./bridge-api.js";
 import { PrismaClient, Prisma } from "@prisma/client";
-
 import { decodeParameter, decodeParameters } from "web3-eth-abi";
+import {ethers} from "ethers";
+
 import logger from "../helpers/logger.js";
 import {
   IAvailEvent,
@@ -494,7 +495,7 @@ export default class TransactionCron {
       logger.info(
         {
           ...schemaObj,
-          amount_prettified: parseAmount(
+          amountPrettified: parseAmount(
             transferLog
               ? (
                   decodeParameter("uint256", transferLog.logData) as BigInt
@@ -559,7 +560,7 @@ export default class TransactionCron {
         logger.info(
           {
             ...updateObj(),
-            amount_prettified: parseAmount((params[1] as string).toString()),
+            amountPrettified: parseAmount((params[1] as string).toString()),
           },
           "receiveAVAIL"
         );
@@ -603,7 +604,7 @@ export default class TransactionCron {
       logger.info(
         {
           ...sourceObj(),
-          amount_prettified: parseAmount(
+          amountPrettified: parseAmount(
             BigInt(value.fungibleToken.amount).toString()
           ),
         },
@@ -652,7 +653,7 @@ export default class TransactionCron {
       logger.info(
         {
           ...sourceObj(),
-          amount_prettified: parseAmount(
+          amountPrettified: parseAmount(
             new BigNumber(value.message.fungibleToken.amount, 16).toString()
           ),
         },
@@ -683,12 +684,8 @@ export default class TransactionCron {
 
 function parseAmount(numberString: string): string {
   try {
-    const divisor = BigInt(10 ** 18);
-
     const number = BigInt(numberString);
-    const result = number / divisor;
-
-    return result.toString();
+    return ethers.formatEther(number).toString();
   } catch (e) {
     return "";
   }
