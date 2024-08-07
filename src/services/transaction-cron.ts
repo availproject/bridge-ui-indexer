@@ -644,7 +644,7 @@ export default class TransactionCron {
           amount: new BigNumber(
             value.message.fungibleToken.amount,
             16
-          ).toString(),
+          ).toFixed(),
           dataType: "ERC20",
           status: "CLAIMED",
           destinationBlockHash: data.block.hash,
@@ -655,7 +655,7 @@ export default class TransactionCron {
         {
           ...sourceObj(),
           amountPrettified: parseAmount(
-            new BigNumber(value.message.fungibleToken.amount, 16).toFixed(0)
+            new BigNumber(value.message.fungibleToken.amount, 16).toFixed()
           ),
         },
         "MessageExecuted"
