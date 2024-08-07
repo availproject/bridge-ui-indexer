@@ -10,6 +10,7 @@ import { decodeParameter, decodeParameters } from "web3-eth-abi";
 import {ethers} from "ethers";
 
 import logger from "../helpers/logger.js";
+import parseAmount from "../helpers/parser.js";
 import {
   IAvailEvent,
   IAvailExtrinsic,
@@ -654,7 +655,7 @@ export default class TransactionCron {
         {
           ...sourceObj(),
           amountPrettified: parseAmount(
-            new BigNumber(value.message.fungibleToken.amount, 16).toString()
+            new BigNumber(value.message.fungibleToken.amount, 16).toFixed(0)
           ),
         },
         "MessageExecuted"
@@ -679,14 +680,5 @@ export default class TransactionCron {
     } catch (error) {
       logger.error("An error occurred during the transaction:", error);
     }
-  }
-}
-
-function parseAmount(numberString: string): string {
-  try {
-    const number = BigInt(numberString);
-    return ethers.formatEther(number).toString();
-  } catch (e) {
-    return "";
   }
 }
