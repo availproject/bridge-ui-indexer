@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import { describe, it } from "node:test";
 import { BigNumber } from "bignumber.js";
-import parseAmount from "../helpers/parser.js";
+import {parseAmount} from "../helpers/parser.js";
 
 describe("Test tx amount parse", () => {
   it("Should parse rawFungibleTokenAmount on 18 digit BigNumber value", () => {
@@ -17,6 +17,20 @@ describe("Test tx amount parse", () => {
     const bigNumberString = BigNumber(rawFungibleTokenAmount, 16).toFixed();
     const amountPrettified = parseAmount(bigNumberString);
     const expectedParsedAmount = "114119.157542431558142674";
+    assert.deepStrictEqual(amountPrettified, expectedParsedAmount);
+  });
+
+  it("Should parse scientific notation", () => {
+    const scientificNotation = "9.268745046813357e+22";
+    const amountPrettified = parseAmount(scientificNotation);
+    const expectedParsedAmount = "92687.45046813357";
+    assert.deepStrictEqual(amountPrettified, expectedParsedAmount);
+  });
+
+  it("Should parse regular number", () => {
+    const scientificNotation = "1000000000000000000";
+    const amountPrettified = parseAmount(scientificNotation);
+    const expectedParsedAmount = "1.0";
     assert.deepStrictEqual(amountPrettified, expectedParsedAmount);
   });
 });
