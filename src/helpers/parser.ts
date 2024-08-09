@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import {BigNumber} from "bignumber.js";
+import { BigNumber } from "bignumber.js";
 
 export default function parseAmount(numberString: string): string {
   try {
