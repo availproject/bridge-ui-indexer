@@ -1,7 +1,7 @@
 import assert from "assert/strict";
 import { describe, it } from "node:test";
 import { BigNumber } from "bignumber.js";
-import {parseAmount} from "../helpers/parser.js";
+import parseAmount from "../helpers/parser.js";
 
 describe("Test tx amount parse", () => {
   it("Should parse rawFungibleTokenAmount on 18 digit BigNumber value", () => {
