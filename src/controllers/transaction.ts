@@ -2,6 +2,8 @@ import TransactionService from "../services/transaction.js";
 import BridgeApi from "../services/bridge-api.js";
 import fastify from "fastify";
 
+const TRANSACTIONS_CACHE_MAX_AGE = Number(process.env.TRANSACTIONS_CACHE_MAX_AGE) || 300
+
 type getTransactionsRequest = fastify.FastifyRequest<{
   Querystring: {
     sourceChain: string;
@@ -38,15 +40,25 @@ export default class TransactionsServiceController {
   ): Promise<void> {
     try {
       let respObj = await this.transactionService.getAllTransactions(req.query);
-      res.status(200).send({
-        success: true,
-        data: respObj,
-      });
+      res
+        .status(200)
+        .headers({
+          "Cache-Control": `public, max-age=${TRANSACTIONS_CACHE_MAX_AGE}, must-revalidate`,
+        })
+        .send({
+          success: true,
+          data: respObj,
+        });
     } catch (error) {
-      res.status(500).send({
-        success: false,
-        error,
-      });
+      res
+        .status(500)
+        .headers({
+          "Cache-Control": `public, max-age=${TRANSACTIONS_CACHE_MAX_AGE}, must-revalidate`,
+        })
+        .send({
+          success: false,
+          error,
+        });
     }
   }
 
