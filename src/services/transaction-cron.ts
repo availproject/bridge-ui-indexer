@@ -266,21 +266,17 @@ export default class TransactionCron {
     try {
       let response = await this.bridgeApi.getEthLatestHeadOnAvail();
 
-      if (response && response.data && response.data.slot) {
-        let block = await this.bridgeApi.getBlockNumberBySlot(
-          response.data.slot
-        );
-        if (block && block.data && block.data.blockNumber) {
+      if (response && response.data && response.data.blockNumber) {
+        let blockNumber = response.data.blockNumber
           await prisma.ethereumsends.updateMany({
             where: {
               status: "BRIDGED",
-              sourceBlockNumber: { lte: block.data.blockNumber },
+              sourceBlockNumber: { lte: blockNumber },
             },
             data: {
               status: "READY_TO_CLAIM",
             },
           });
-        }
       }
     } catch (error) {
       logger.error(
